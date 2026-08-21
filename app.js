@@ -61,9 +61,8 @@ async function initAuth() {
         googleLoginBtn?.classList.add('hidden');
         googleUserPill?.classList.remove('hidden');
         if (googleAvatar) googleAvatar.src = user.photoURL || 'https://www.gstatic.com/images/branding/product/1x/avatar_square_blue_512dp.png';
-        if (googleName) googleName.textContent = user.displayName || 'Google User';
+        if (googleName) googleName.textContent = user.displayName || user.email.split('@')[0];
         if (ideDeployAuthor) ideDeployAuthor.value = (user.displayName || user.email.split('@')[0]).toLowerCase().replace(/[^a-z0-9]/g, '');
-        toast(`🟢 Conectado con Google: ${user.email}`);
       } else {
         googleLoginBtn?.classList.remove('hidden');
         googleUserPill?.classList.add('hidden');
@@ -78,11 +77,10 @@ async function initAuth() {
       }
     });
 
-    $('#googleUserPill')?.addEventListener('click', async () => {
-      if (confirm('¿Cerrar sesión de Google?')) {
-        await window.ArkaiosAuth.signOut();
-        toast('Sesión de Google cerrada');
-      }
+    $('#googleLogoutBtn')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await window.ArkaiosAuth.signOut();
+      window.location.href = 'portal.html?status=logged_out';
     });
   }
 }

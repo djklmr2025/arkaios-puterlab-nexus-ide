@@ -19,7 +19,7 @@ class ArkaiosAuthService {
     this.auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
     this.db = typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null;
     this.googleProvider = typeof firebase !== 'undefined' ? new firebase.auth.GoogleAuthProvider() : null;
-    this.currentUser = null;
+    this.currentUser = undefined;
     this.listeners = [];
 
     if (this.auth) {
@@ -52,6 +52,23 @@ class ArkaiosAuthService {
     }
   }
 
+  async signInWithEmail(email, password) {
+    if (!this.auth) throw new Error("Firebase Auth SDK no cargado.");
+    const result = await this.auth.signInWithEmailAndPassword(email, password);
+    return result.user;
+  }
+
+  async registerWithEmail(email, password) {
+    if (!this.auth) throw new Error("Firebase Auth SDK no cargado.");
+    const result = await this.auth.createUserWithEmailAndPassword(email, password);
+    return result.user;
+  }
+
+  async resetPassword(email) {
+    if (!this.auth) throw new Error("Firebase Auth SDK no cargado.");
+    await this.auth.sendPasswordResetEmail(email);
+  }
+
   async signOut() {
     if (this.auth) {
       await this.auth.signOut();
@@ -71,8 +88,8 @@ class ArkaiosAuthService {
         targetFolder: targetFolder,
         userId: this.currentUser.uid,
         userEmail: this.currentUser.email,
-        userDisplayName: this.currentUser.displayName,
-        userPhoto: this.currentUser.photoURL,
+        userDisplayName: this.currentUser.displayName || this.currentUser.email.split('@')[0],
+        userPhoto: this.currentUser.photoURL || '',
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch(e) {

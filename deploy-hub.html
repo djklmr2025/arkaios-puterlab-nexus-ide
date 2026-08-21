@@ -403,12 +403,10 @@ tailwind.config = {
         if (user) {
           googleLoginBtn.classList.add('hidden');
           googleUserPill.classList.remove('hidden');
-          googleAvatar.src = user.photoURL || 'https://www.gstatic.com/images/branding/product/1x/avatar_square_blue_512dp.png';
-          googleName.textContent = user.displayName || 'Usuario Google';
+          googleAvatar.src = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png';
+          googleName.textContent = user.displayName || user.email.split('@')[0];
           googleEmail.textContent = user.email || '';
-          authorInp.value = cleanSlug(user.displayName || user.email.split('@')[0]) || 'arkaios';
-          updatePreview();
-          log(`Sesión iniciada con Google: ${user.email}`, 'ok');
+          authorInp.value = (user.displayName || user.email.split('@')[0]).toLowerCase().replace(/[^a-z0-9]/g, '');
         } else {
           googleLoginBtn.classList.remove('hidden');
           googleUserPill.classList.add('hidden');
@@ -423,9 +421,10 @@ tailwind.config = {
         }
       });
 
-      googleLogoutBtn.addEventListener('click', async () => {
+      googleLogoutBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         await window.ArkaiosAuth.signOut();
-        log(`Sesión de Google cerrada`, 'info');
+        window.location.href = 'portal.html?status=logged_out';
       });
     }
 
