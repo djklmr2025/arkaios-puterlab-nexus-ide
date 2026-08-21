@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PuterLab Nexus IDE & Deploy Hub — Ecosistema AI en Vercel & Puter Cloud</title>
+<title>PuterLab Nexus IDE & Deploy Hub — Ecosistema AI</title>
 
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -24,7 +24,7 @@ tailwind.config = {
 }
 </script>
 <style>
-  .glass { background: rgba(17, 20, 32, 0.75); backdrop-filter: blur(16px); }
+  .glass { background: rgba(17, 20, 32, 0.85); backdrop-filter: blur(16px); }
   .glow-purple { box-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.3); }
 </style>
 </head>
@@ -48,33 +48,55 @@ tailwind.config = {
 
     <!-- Auth Bar -->
     <div class="flex items-center gap-3">
-      <!-- Google Auth Profile Pill -->
-      <button id="googleLoginBtn" class="bg-white hover:bg-slate-100 text-slate-900 text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 shadow">
-        <svg class="w-4 h-4" viewBox="0 0 24 24">
+      <div id="googleUserPill" class="hidden flex items-center gap-2 bg-panel2 border border-borderEdge px-3 py-1.5 rounded-xl shadow-md">
+        <img id="googleAvatar" src="" class="w-7 h-7 rounded-full border border-brand/50">
+        <div class="text-[11px] leading-tight">
+          <div id="googleName" class="font-bold text-white"></div>
+          <div id="googleEmail" class="text-slate-400 text-[10px]"></div>
+        </div>
+        <button id="googleLogoutBtn" title="Cerrar sesión" class="text-slate-400 hover:text-red-400 text-xs ml-2 px-1.5 py-0.5 rounded bg-panel hover:bg-red-500/10 border border-borderEdge transition-colors">
+          Cerrar sesión ✕
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- GATEWAY LOCK SCREEN (Primer Ventana de Autenticación de Google) -->
+  <section id="authLockScreen" class="flex-1 flex items-center justify-center p-6 my-auto">
+    <div class="bg-panel/90 border border-borderEdge rounded-3xl p-8 md:p-12 max-w-md w-full text-center shadow-2xl glass glow-purple relative overflow-hidden">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand via-purple-500 to-emerald-400 flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-brand/30">
+        ▲
+      </div>
+
+      <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
+        Bienvenido a PuterLab
+      </h2>
+      <p class="text-slate-400 text-xs md:text-sm mb-8 leading-relaxed">
+        Para ingresar al IDE, Deploy Hub y herramientas de Inteligencia Artificial, inicia sesión con tu cuenta de Google.
+      </p>
+
+      <button id="mainGoogleSignInBtn" class="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3.5 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]">
+        <svg class="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
         </svg>
-        <span>Acceder con Google</span>
+        <span class="text-sm">Continuar con Google</span>
       </button>
 
-      <div id="googleUserPill" class="hidden flex items-center gap-2 bg-panel2 border border-borderEdge px-2.5 py-1 rounded-lg">
-        <img id="googleAvatar" src="" class="w-6 h-6 rounded-full border border-brand/50">
-        <div class="text-[11px] leading-tight">
-          <div id="googleName" class="font-bold text-white"></div>
-          <div id="googleEmail" class="text-slate-400 text-[10px]"></div>
-        </div>
-        <button id="googleLogoutBtn" class="text-slate-400 hover:text-red-400 text-xs ml-1">✕</button>
+      <div class="mt-6 text-[11px] text-slate-500 flex items-center justify-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Autenticación segura con Firebase Auth (`arkaios-world`)
       </div>
     </div>
-  </header>
+  </section>
 
-  <!-- Hero Section -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col items-center text-center">
+  <!-- PLATFORM CONTENT (Se despliega únicamente tras autenticarse) -->
+  <main id="platformContent" class="hidden flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col items-center text-center animate-fade-in">
 
     <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand/10 border border-brand/30 text-brand2 text-xs font-semibold mb-6">
-      ✨ Ecosistema Integrado Vercel + Puter Cloud + Firebase Google Auth
+      ✨ Ecosistema Autenticado Vercel + Puter Cloud + Firebase Google Auth
     </div>
 
     <h1 class="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mb-4">
@@ -82,7 +104,7 @@ tailwind.config = {
     </h1>
 
     <p class="text-slate-400 text-sm md:text-base max-w-2xl mb-10 leading-relaxed">
-      La plataforma All-in-One para crear, editar, alojar y gestionar proyectos en la nube de Puter. Con soporte de Google Auth, Vercel Deploy Hub y ejecutable nativo para Windows.
+      Bienvenido al ecosistema All-in-One. Selecciona el módulo que deseas utilizar para crear, alojar o descargar tus proyectos.
     </p>
 
     <!-- 3 Core Access Gateway Cards -->
@@ -148,22 +170,32 @@ tailwind.config = {
   <script>
     if (window.ArkaiosAuth) {
       window.ArkaiosAuth.onAuthChange((user) => {
-        const btn = document.getElementById('googleLoginBtn');
+        const lockScreen = document.getElementById('authLockScreen');
+        const platformContent = document.getElementById('platformContent');
         const pill = document.getElementById('googleUserPill');
+
         if (user) {
-          btn.classList.add('hidden');
+          // Usuario Autenticado -> Muestra la plataforma y oculta la ventana de login
+          lockScreen.classList.add('hidden');
+          platformContent.classList.remove('hidden');
           pill.classList.remove('hidden');
           document.getElementById('googleAvatar').src = user.photoURL || '';
           document.getElementById('googleName').textContent = user.displayName || 'Google User';
           document.getElementById('googleEmail').textContent = user.email || '';
         } else {
-          btn.classList.remove('hidden');
+          // Usuario No Autenticado -> Muestra únicamente la ventana de Login de Google
+          lockScreen.classList.remove('hidden');
+          platformContent.classList.add('hidden');
           pill.classList.add('hidden');
         }
       });
 
-      document.getElementById('googleLoginBtn').addEventListener('click', async () => {
-        await window.ArkaiosAuth.signInWithGoogle();
+      document.getElementById('mainGoogleSignInBtn').addEventListener('click', async () => {
+        try {
+          await window.ArkaiosAuth.signInWithGoogle();
+        } catch (e) {
+          alert('Error de inicio de sesión con Google: ' + e.message);
+        }
       });
 
       document.getElementById('googleLogoutBtn').addEventListener('click', async () => {
