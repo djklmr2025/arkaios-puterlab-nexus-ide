@@ -48,14 +48,14 @@ tailwind.config = {
 
     <!-- Auth Bar -->
     <div class="flex items-center gap-3">
-      <div id="googleUserPill" class="hidden flex items-center gap-2 bg-panel2 border border-borderEdge px-3 py-1.5 rounded-xl shadow-md">
+      <div id="googleUserPill" class="hidden flex items-center gap-3 bg-panel2 border border-borderEdge px-3 py-1.5 rounded-xl shadow-md">
         <img id="googleAvatar" src="" class="w-7 h-7 rounded-full border border-brand/50">
         <div class="text-[11px] leading-tight">
           <div id="googleName" class="font-bold text-white"></div>
           <div id="googleEmail" class="text-slate-400 text-[10px]"></div>
         </div>
-        <button id="googleLogoutBtn" title="Cerrar sesión" class="text-slate-400 hover:text-red-400 text-xs ml-2 px-1.5 py-0.5 rounded bg-panel hover:bg-red-500/10 border border-borderEdge transition-colors">
-          Cerrar sesión ✕
+        <button id="googleLogoutBtn" title="Cerrar sesión" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/50 text-xs font-semibold px-3 py-1 rounded-lg ml-2 transition-all flex items-center gap-1.5 shadow-sm">
+          <span>Cerrar sesión</span> 🚪
         </button>
       </div>
     </div>
