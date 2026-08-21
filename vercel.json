@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "routes": [
+    { "src": "/", "dest": "/portal.html" },
+    { "src": "/ide", "dest": "/index.html" },
+    { "src": "/deploy", "dest": "/deploy-hub.html" }
+  ]
+}

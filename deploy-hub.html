@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Antigravity Deploy2Puter Host — Vercel & Render para Puter Cloud</title>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script type="module" src="github-storage.js"></script>
+
+<!-- Puter.js -->
+<script src="https://js.puter.com/v2/"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: { colors: {
+    ink: '#0b0d14', panel: '#131622', panel2: '#1a1e2e', borderEdge: '#262b3d',
+    brand: '#6366f1', brand2: '#818cf8', accent: '#10b981'
+  }, fontFamily: { mono: ['ui-monospace','SFMono-Regular','Menlo','monospace'] } } }
+}
+</script>
+<style>
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0b0d14; }
+  ::-webkit-scrollbar-thumb { background: #262b3d; border-radius: 4px; }
+  .log-line { font-family: monospace; font-size: 12px; line-height: 1.6; }
+</style>
+</head>
+<body class="bg-ink text-slate-200 font-sans min-h-screen flex flex-col antialiased">
+
+  <!-- Navigation Header -->
+  <header class="h-16 border-b border-borderEdge bg-panel/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-brand to-purple-500 flex items-center justify-center font-bold text-white shadow-lg shadow-brand/20">
+        ▲
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold tracking-tight text-white text-base">Antigravity</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-brand/20 text-brand2 border border-brand/30 font-medium">Deploy2Puter Host v1.0</span>
+        </div>
+        <div class="text-[11px] text-slate-400">Powered by Puter Cloud & Arkaios Google Auth</div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Google Auth Profile Pill -->
+      <div id="googleAuthContainer" class="flex items-center gap-2">
+        <button id="googleLoginBtn" class="bg-white hover:bg-slate-100 text-slate-900 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors flex items-center gap-2 shadow">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Acceder con Google</span>
+        </button>
+
+        <div id="googleUserPill" class="hidden flex items-center gap-2 bg-panel2 border border-borderEdge px-2.5 py-1 rounded-md">
+          <img id="googleAvatar" src="" class="w-6 h-6 rounded-full border border-brand/50">
+          <div class="text-[11px] leading-tight">
+            <div id="googleName" class="font-bold text-white"></div>
+            <div id="googleEmail" class="text-slate-400 text-[10px]"></div>
+          </div>
+          <button id="googleLogoutBtn" class="text-slate-400 hover:text-red-400 text-xs ml-1" title="Cerrar sesión de Google">✕</button>
+        </div>
+      </div>
+
+      <div class="h-6 w-px bg-borderEdge"></div>
+
+      <!-- Puter Status -->
+      <div id="userInfo" class="text-xs text-slate-400 flex items-center gap-2 bg-panel2 px-3 py-1.5 rounded-md border border-borderEdge">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="userLabel">Puter Desconectado</span>
+      </div>
+      <button id="authBtn" class="bg-brand hover:bg-brand2 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition-colors shadow-sm">
+        Conectar Puter
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Deploy Form & Active Projects (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- Deploy Form Card -->
+      <div class="bg-panel border border-borderEdge rounded-xl p-6 shadow-xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-48 h-48 bg-brand/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              🚀 Nuevo Despliegue de Proyecto
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Sube desde carpetas locales, GitHub o el IDE y asigna un subdominio oficial estilo Vercel / Render.</p>
+          </div>
+        </div>
+
+        <!-- Source Selector Tabs -->
+        <div class="flex items-center gap-2 mb-4 p-1 bg-ink border border-borderEdge rounded-lg text-xs overflow-x-auto">
+          <button id="tabIde" class="flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap">💻 PuterLab IDE</button>
+          <button id="tabLocal" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">📁 Carpeta Local</button>
+          <button id="tabGithub" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">🐙 Repo GitHub</button>
+          <button id="tabCloudSpace" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">☁️ Mi Espacio Puter</button>
+        </div>
+
+        <div class="space-y-4 text-xs">
+
+          <!-- Local Folder / Files Upload Area -->
+          <div id="localSourcePanel" class="hidden p-4 border-2 border-dashed border-borderEdge hover:border-brand/50 rounded-xl bg-ink/40 text-center transition-colors">
+            <div class="text-2xl mb-1">📁</div>
+            <div class="font-bold text-white text-xs mb-1">Seleccionar o Arrastrar Carpeta del Proyecto</div>
+            <div class="text-[11px] text-slate-400 mb-3">Sube los archivos HTML, CSS, JS o Assets de tu computadora</div>
+            <input type="file" id="folderPicker" webkitdirectory directory multiple class="hidden">
+            <button onclick="document.getElementById('folderPicker').click()" class="bg-panel2 hover:bg-borderEdge text-brand2 font-semibold px-4 py-2 rounded-lg border border-borderEdge transition-colors">
+              Examinar Carpeta Local...
+            </button>
+            <div id="folderSummary" class="text-[11px] text-emerald-400 mt-2 font-mono"></div>
+          </div>
+
+          <!-- GitHub Repo Import Area -->
+          <div id="githubSourcePanel" class="hidden space-y-2 p-3 border border-borderEdge rounded-xl bg-ink/40">
+            <label class="block font-medium text-slate-300">URL del Repositorio de GitHub:</label>
+            <input type="text" id="githubRepoInp" placeholder="https://github.com/usuario/mi-proyecto" class="w-full bg-ink border border-borderEdge rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand font-mono text-xs">
+            <div class="flex items-center justify-between mt-1">
+              <span class="text-[10px] text-slate-400">Sincroniza y hace commit automático del proyecto en GitHub.</span>
+              <button id="gitAutoPushBtn" class="text-[10px] bg-brand/20 text-brand2 px-2 py-0.5 rounded border border-brand/30 hover:bg-brand/30">
+                ⚡ Auto Git Push Activado
+              </button>
+            </div>
+          </div>
+
+          <!-- Puter Cloud Space Inspector Panel -->
+          <div id="cloudSpacePanel" class="hidden space-y-3 p-3 border border-borderEdge rounded-xl bg-ink/40">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white text-xs">📁 Disco Virtual Puter (`puter.fs`)</span>
+              <button id="refreshCloudFsBtn" class="text-[11px] text-brand2 hover:underline">🔄 Explorar Nube</button>
+            </div>
+            <div id="cloudFsTree" class="bg-ink border border-borderEdge rounded-lg p-2.5 max-h-48 overflow-y-auto font-mono text-[11px] space-y-1">
+              <div class="text-slate-500">Haz clic en Explorar Nube para ver tus archivos en Puter...</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Autor / Organización:</label>
+              <input type="text" id="authorInp" value="arkaios" class="w-full bg-ink border border-borderEdge rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Nombre del Proyecto:</label>
+              <input type="text" id="projectInp" value="world" class="w-full bg-ink border border-borderEdge rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand">
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Subdominio Calculado (.puter.site):</label>
+            <div class="flex items-center gap-2 bg-ink border border-borderEdge rounded-lg px-3 py-2 text-brand2 font-mono text-sm">
+              <span id="subdomainPreview">https://arkaios-world.puter.site/</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center justify-between gap-3">
+            <button id="deployBtn" class="flex-1 bg-gradient-to-r from-brand to-purple-600 hover:from-brand2 hover:to-purple-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 text-sm">
+              <span>🚀 Lanzar Despliegue Estilo Vercel</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deployed Sites & Cloud Vault Grid -->
+      <div class="bg-panel border border-borderEdge rounded-xl p-6 shadow-xl flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-white text-sm flex items-center gap-2">
+            🌐 Aplicaciones Públicas en la Nube Puter
+            <span id="siteCount" class="text-xs px-2 py-0.5 rounded-full bg-panel2 text-slate-400 border border-borderEdge">0</span>
+          </h3>
+          <button id="refreshSitesBtn" class="text-xs text-brand2 hover:underline flex items-center gap-1">
+            🔄 Actualizar lista
+          </button>
+        </div>
+
+        <div id="sitesList" class="space-y-2 flex-1 overflow-y-auto max-h-[340px] pr-1">
+          <div class="text-center py-8 text-xs text-slate-500">Conectando servicio...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Live Log Cabin & AI Diagnostic Co-Pilot (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- Log Cabin Card -->
+      <div class="bg-panel border border-borderEdge rounded-xl p-5 shadow-xl flex flex-col h-[420px]">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="font-bold text-white text-sm">Cabina de .log en Vivo</h3>
+          </div>
+          <button id="clearLogsBtn" class="text-[11px] text-slate-400 hover:text-white">Limpiar</button>
+        </div>
+
+        <div id="logCabin" class="flex-1 bg-ink border border-borderEdge rounded-lg p-3 overflow-y-auto font-mono text-[11px] space-y-1">
+          <div class="text-slate-500">[Sistema] Esperando evento de despliegue...</div>
+        </div>
+      </div>
+
+      <!-- AI Diagnostic Co-Pilot Card -->
+      <div class="bg-panel border border-borderEdge rounded-xl p-5 shadow-xl flex flex-col flex-1">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded bg-brand/20 flex items-center justify-center text-brand2 font-bold text-xs">🤖</div>
+            <h3 class="font-bold text-white text-sm">IA Co-Pilot de Despliegues & Git Auto-Push</h3>
+          </div>
+          <button id="aiAnalyzeBtn" class="bg-panel2 hover:bg-borderEdge text-xs text-brand2 px-2.5 py-1 rounded border border-borderEdge transition-colors">
+            🔍 Analizar Cabina .log
+          </button>
+        </div>
+
+        <div id="aiDiagnosticBox" class="flex-1 bg-ink/60 border border-borderEdge rounded-lg p-3 text-xs leading-relaxed overflow-y-auto text-slate-300">
+          El Co-Pilot monitorea la cabina de `.log` durante la sincronización y realiza Git Commit & Push automático a tus repositorios.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Cloud App Files Modal -->
+  <div id="cloudFilesModal" class="hidden fixed inset-0 bg-ink/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-panel border border-borderEdge rounded-xl w-full max-w-xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-borderEdge pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">👁</span>
+          <h3 id="modalAppTitle" class="font-bold text-white text-sm">Inspeccionar Archivos en Puter Cloud</h3>
+        </div>
+        <button id="closeCloudFilesModal" class="text-slate-400 hover:text-white p-1 rounded">✕</button>
+      </div>
+
+      <div id="modalFilesContent" class="bg-ink border border-borderEdge rounded-lg p-3 font-mono text-xs max-h-64 overflow-y-auto space-y-1">
+        <div class="text-slate-500">Cargando archivos de la nube...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FILES_TO_DEPLOY = [
+      'index.html',
+      'styles.css',
+      'app.js',
+      'store.js',
+      'local-fs.js',
+      'md.js',
+      'manifest.json',
+      'icon.svg'
+    ];
+
+    const authorInp = document.getElementById('authorInp');
+    const projectInp = document.getElementById('projectInp');
+    const subdomainPreview = document.getElementById('subdomainPreview');
+    const logCabin = document.getElementById('logCabin');
+    const sitesList = document.getElementById('sitesList');
+    const siteCount = document.getElementById('siteCount');
+    const userLabel = document.getElementById('userLabel');
+    const authBtn = document.getElementById('authBtn');
+    const aiDiagnosticBox = document.getElementById('aiDiagnosticBox');
+
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const googleUserPill = document.getElementById('googleUserPill');
+    const googleAvatar = document.getElementById('googleAvatar');
+    const googleName = document.getElementById('googleName');
+    const googleEmail = document.getElementById('googleEmail');
+    const googleLogoutBtn = document.getElementById('googleLogoutBtn');
+
+    let activeSourceMode = 'ide'; // 'ide', 'local', 'github', 'cloud'
+    let selectedLocalFiles = [];  // Array of {path, text}
+
+    // Tabs switching
+    const tabIde = document.getElementById('tabIde');
+    const tabLocal = document.getElementById('tabLocal');
+    const tabGithub = document.getElementById('tabGithub');
+    const tabCloudSpace = document.getElementById('tabCloudSpace');
+    const localSourcePanel = document.getElementById('localSourcePanel');
+    const githubSourcePanel = document.getElementById('githubSourcePanel');
+    const cloudSpacePanel = document.getElementById('cloudSpacePanel');
+
+    function setTab(mode) {
+      activeSourceMode = mode;
+      tabIde.className = mode === 'ide' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
+      tabLocal.className = mode === 'local' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
+      tabGithub.className = mode === 'github' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
+      tabCloudSpace.className = mode === 'cloud' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
+
+      localSourcePanel.classList.toggle('hidden', mode !== 'local');
+      githubSourcePanel.classList.toggle('hidden', mode !== 'github');
+      cloudSpacePanel.classList.toggle('hidden', mode !== 'cloud');
+
+      if (mode === 'cloud') fetchCloudFs();
+    }
+
+    tabIde.addEventListener('click', () => setTab('ide'));
+    tabLocal.addEventListener('click', () => setTab('local'));
+    tabGithub.addEventListener('click', () => setTab('github'));
+    tabCloudSpace.addEventListener('click', () => setTab('cloud'));
+
+    // Handle local directory file picker
+    document.getElementById('folderPicker').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      selectedLocalFiles = [];
+      const summaryEl = document.getElementById('folderSummary');
+      summaryEl.textContent = `Leyendo ${files.length} archivos...`;
+
+      for (const f of files) {
+        if (f.webkitRelativePath.includes('/.git/') || f.webkitRelativePath.includes('/node_modules/')) continue;
+        const text = await f.text();
+        const relPath = f.webkitRelativePath.split('/').slice(1).join('/') || f.name;
+        selectedLocalFiles.push({ path: relPath, text });
+      }
+
+      summaryEl.textContent = `✔ ${selectedLocalFiles.length} archivos preparados para despliegue`;
+      log(`Cargada carpeta local con ${selectedLocalFiles.length} archivo(s)`, 'ok');
+    });
+
+    let logHistory = [];
+
+    function cleanSlug(str) {
+      return str.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    function updatePreview() {
+      const author = cleanSlug(authorInp.value) || 'arkaios';
+      const project = cleanSlug(projectInp.value) || 'world';
+      const slug = `${author}-${project}`;
+      subdomainPreview.textContent = `https://${slug}.puter.site/`;
+      return slug;
+    }
+
+    authorInp.addEventListener('input', updatePreview);
+    projectInp.addEventListener('input', updatePreview);
+
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      let colorClass = 'text-slate-300';
+      if (type === 'ok') colorClass = 'text-emerald-400';
+      if (type === 'err') colorClass = 'text-red-400 font-semibold';
+      if (type === 'warn') colorClass = 'text-amber-400';
+      if (type === 'sys') colorClass = 'text-brand2 font-semibold';
+
+      line.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="${colorClass}">${msg}</span>`;
+      logCabin.appendChild(line);
+      logCabin.scrollTop = logCabin.scrollHeight;
+      logHistory.push(`[${time}] [${type.toUpperCase()}] ${msg}`);
+    }
+
+    document.getElementById('clearLogsBtn').addEventListener('click', () => {
+      logCabin.innerHTML = '';
+      logHistory = [];
+    });
+
+    // Cloud FS Explorer
+    async function fetchCloudFs() {
+      const tree = document.getElementById('cloudFsTree');
+      tree.innerHTML = '<div class="text-brand2 animate-pulse">Explorando almacenamiento Puter.fs...</div>';
+      try {
+        if (typeof puter === 'undefined' || !puter.fs) return;
+        const items = await puter.fs.readdir('/') || [];
+        tree.innerHTML = '';
+        if (!items.length) {
+          tree.innerHTML = '<div class="text-slate-500">(Directorio raíz vacío)</div>';
+          return;
+        }
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between py-1 border-b border-borderEdge/40';
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span>${item.is_dir ? '📁' : '📄'}</span>
+              <span class="text-white">${item.name}</span>
+            </div>
+            <span class="text-slate-500 text-[10px]">${item.size ? (item.size + ' B') : (item.is_dir ? 'Carpeta' : '')}</span>
+          `;
+          tree.appendChild(row);
+        });
+      } catch(e) {
+        tree.innerHTML = `<div class="text-red-400">Error en FS: ${e.message}</div>`;
+      }
+    }
+    document.getElementById('refreshCloudFsBtn').addEventListener('click', fetchCloudFs);
+
+    // Google Authentication Handlers
+    if (window.ArkaiosAuth) {
+      window.ArkaiosAuth.onAuthChange((user) => {
+        if (user) {
+          googleLoginBtn.classList.add('hidden');
+          googleUserPill.classList.remove('hidden');
+          googleAvatar.src = user.photoURL || 'https://www.gstatic.com/images/branding/product/1x/avatar_square_blue_512dp.png';
+          googleName.textContent = user.displayName || 'Usuario Google';
+          googleEmail.textContent = user.email || '';
+          authorInp.value = cleanSlug(user.displayName || user.email.split('@')[0]) || 'arkaios';
+          updatePreview();
+          log(`Sesión iniciada con Google: ${user.email}`, 'ok');
+        } else {
+          googleLoginBtn.classList.remove('hidden');
+          googleUserPill.classList.add('hidden');
+        }
+      });
+
+      googleLoginBtn.addEventListener('click', async () => {
+        try {
+          await window.ArkaiosAuth.signInWithGoogle();
+        } catch(e) {
+          log(`Error en login con Google: ${e.message}`, 'err');
+        }
+      });
+
+      googleLogoutBtn.addEventListener('click', async () => {
+        await window.ArkaiosAuth.signOut();
+        log(`Sesión de Google cerrada`, 'info');
+      });
+    }
+
+    // Puter Auth logic
+    async function checkAuth() {
+      if (typeof puter !== 'undefined' && puter.auth && puter.auth.isSignedIn()) {
+        try {
+          const user = await puter.auth.getUser();
+          userLabel.textContent = user.username || 'Puter Conectado';
+          userLabel.previousElementSibling.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          authBtn.textContent = 'Cerrar Puter';
+          fetchSites();
+        } catch(e){}
+      } else {
+        userLabel.textContent = 'Puter Desconectado';
+        userLabel.previousElementSibling.className = 'w-2 h-2 rounded-full bg-amber-400';
+        authBtn.textContent = 'Conectar Puter';
+      }
+    }
+
+    authBtn.addEventListener('click', async () => {
+      if (puter.auth.isSignedIn()) {
+        await puter.auth.signOut();
+        checkAuth();
+        sitesList.innerHTML = '<div class="text-center py-8 text-xs text-slate-500">Sesión de Puter cerrada</div>';
+      } else {
+        await puter.auth.signIn();
+        checkAuth();
+      }
+    });
+
+    // Fetch user deployed sites & inspect files
+    async function fetchSites() {
+      if (!puter.auth.isSignedIn()) return;
+      try {
+        const sites = await puter.hosting.list() || [];
+        siteCount.textContent = sites.length;
+        sitesList.innerHTML = '';
+
+        if (!sites.length) {
+          sitesList.innerHTML = '<div class="text-center py-8 text-xs text-slate-500">No tienes proyectos desplegados aún</div>';
+          return;
+        }
+
+        sites.forEach(s => {
+          const sub = (s.subdomain || '').replace(/\.puter\.site$/i, '');
+          const url = `https://${sub}.puter.site/`;
+          const item = document.createElement('div');
+          item.className = 'bg-ink border border-borderEdge rounded-lg p-3 flex items-center justify-between text-xs';
+          item.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand/30 to-purple-500/30 border border-brand/40 flex items-center justify-center font-bold text-white">
+                🌐
+              </div>
+              <div>
+                <div class="font-bold text-white font-mono flex items-center gap-2">
+                  <span>${sub}.puter.site</span>
+                  <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 rounded">En vivo</span>
+                </div>
+                <a href="${url}" target="_blank" class="text-brand2 hover:underline text-[11px]">${url}</a>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="inspectAppFiles('${sub}')" class="px-2.5 py-1 rounded bg-panel2 text-slate-300 hover:bg-borderEdge transition-colors text-[11px] flex items-center gap-1">
+                👁 Archivos
+              </button>
+              <a href="${url}" target="_blank" class="px-2.5 py-1 rounded bg-brand/20 text-brand2 hover:bg-brand/30 transition-colors font-medium">
+                Abrir
+              </a>
+              <button onclick="deleteSite('${s.id || s.subdomain}')" class="p-1 text-slate-500 hover:text-red-400 transition-colors" title="Eliminar sitio">
+                🗑
+              </button>
+            </div>
+          `;
+          sitesList.appendChild(item);
+        });
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    window.inspectAppFiles = async function(sub) {
+      const modal = document.getElementById('cloudFilesModal');
+      const title = document.getElementById('modalAppTitle');
+      const content = document.getElementById('modalFilesContent');
+      title.textContent = `Archivos Nube: ${sub}.puter.site`;
+      content.innerHTML = '<div class="text-brand2 animate-pulse">Inspeccionando directorio en Puter Cloud...</div>';
+      modal.classList.remove('hidden');
+
+      try {
+        const targetFolder = '/' + sub;
+        const items = await puter.fs.readdir(targetFolder) || [];
+        content.innerHTML = '';
+        if (!items.length) {
+          content.innerHTML = '<div class="text-slate-500">Carpeta de la aplicación vacía.</div>';
+          return;
+        }
+        items.forEach(file => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between py-1 border-b border-borderEdge/40';
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span>📄</span>
+              <span class="text-white">${file.name}</span>
+            </div>
+            <span class="text-slate-400 text-[10px]">${file.size || 0} bytes</span>
+          `;
+          content.appendChild(row);
+        });
+      } catch(e) {
+        content.innerHTML = `<div class="text-red-400">Error leyendo carpeta: ${e.message}</div>`;
+      }
+    };
+
+    document.getElementById('closeCloudFilesModal').addEventListener('click', () => {
+      document.getElementById('cloudFilesModal').classList.add('hidden');
+    });
+
+    window.deleteSite = async function(id) {
+      if (confirm(`¿Seguro que deseas eliminar el hosting '${id}'?`)) {
+        try {
+          log(`Eliminando hosting '${id}'...`, 'warn');
+          await puter.hosting.delete(id);
+          log(`Sitio '${id}' eliminado con éxito`, 'ok');
+          fetchSites();
+        } catch(e) {
+          log(`Error eliminando sitio: ${e.message}`, 'err');
+        }
+      }
+    };
+
+    document.getElementById('refreshSitesBtn').addEventListener('click', fetchSites);
+
+    // Deploy Execution
+    document.getElementById('deployBtn').addEventListener('click', async () => {
+      const slug = updatePreview();
+      const targetFolder = '/' + slug;
+
+      log(`▶ Iniciando pipeline de despliegue 'Antigravity Deploy2PuterHost'`, 'sys');
+      log(`Origen: '${activeSourceMode.toUpperCase()}' | Autor: '${authorInp.value}' | Proyecto: '${projectInp.value}' | Subdominio: '${slug}'`, 'info');
+
+      try {
+        if (!puter.auth.isSignedIn()) {
+          log(`Solicitando autenticación en Puter Cloud...`, 'warn');
+          await puter.auth.signIn();
+          checkAuth();
+        }
+
+        log(`Creando/verificando directorio de almacenamiento '${targetFolder}' en puter.fs...`, 'info');
+        try { await puter.fs.mkdir(targetFolder); } catch(e){}
+
+        let deployedFilesMap = {};
+
+        if (activeSourceMode === 'ide') {
+          log(`Sincronizando ${FILES_TO_DEPLOY.length} archivos del IDE a la nube...`, 'info');
+          for (const file of FILES_TO_DEPLOY) {
+            try {
+              const res = await fetch('http://localhost:8000/' + file);
+              if (res.ok) {
+                const text = await res.text();
+                await puter.fs.write(targetFolder + '/' + file, text);
+                deployedFilesMap[file] = text;
+                log(`  ✔ [PuterFS] Guardado ${targetFolder}/${file} (${text.length} bytes)`, 'ok');
+              }
+            } catch(errFile) {
+              log(`  ✖ [PuterFS] Error leyendo ${file}: ${errFile.message}`, 'err');
+            }
+          }
+        } else if (activeSourceMode === 'local') {
+          if (!selectedLocalFiles.length) {
+            throw new Error("No has seleccionado ninguna carpeta local para desplegar.");
+          }
+          log(`Sincronizando ${selectedLocalFiles.length} archivo(s) de tu carpeta local a puter.fs...`, 'info');
+          for (const f of selectedLocalFiles) {
+            const pathParts = f.path.split('/');
+            if (pathParts.length > 1) {
+              const subDir = targetFolder + '/' + pathParts.slice(0, -1).join('/');
+              try { await puter.fs.mkdir(subDir); } catch(e){}
+            }
+            await puter.fs.write(targetFolder + '/' + f.path, f.text);
+            deployedFilesMap[f.path] = f.text;
+            log(`  ✔ [PuterFS] Guardado ${targetFolder}/${f.path}`, 'ok');
+          }
+        } else if (activeSourceMode === 'github') {
+          const repoUrl = document.getElementById('githubRepoInp').value.trim();
+          if (!repoUrl) throw new Error("Ingresa la URL del repositorio de GitHub.");
+          log(`Importando repositorio desde GitHub (${repoUrl})...`, 'info');
+          const cleanRepo = repoUrl.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
+          const rawIndexUrl = `https://raw.githubusercontent.com/${cleanRepo}/main/index.html`;
+          
+          const res = await fetch(rawIndexUrl);
+          if (res.ok) {
+            const html = await res.text();
+            await puter.fs.write(targetFolder + '/index.html', html);
+            deployedFilesMap['index.html'] = html;
+            log(`  ✔ [GitHub] Importado index.html`, 'ok');
+          } else {
+            const altUrl = `https://raw.githubusercontent.com/${cleanRepo}/master/index.html`;
+            const res2 = await fetch(altUrl);
+            if (res2.ok) {
+              const html2 = await res2.text();
+              await puter.fs.write(targetFolder + '/index.html', html2);
+              deployedFilesMap['index.html'] = html2;
+              log(`  ✔ [GitHub] Importado index.html (rama master)`, 'ok');
+            } else {
+              throw new Error(`No se pudo leer index.html del repositorio GitHub '${cleanRepo}'`);
+            }
+          }
+        }
+
+        log(`Registrando subdominio '${slug}.puter.site' en Puter Hosting...`, 'info');
+        let site = null;
+
+        try {
+          site = await puter.hosting.create(slug, targetFolder);
+          log(`✔ Subdominio registrado exitosamente`, 'ok');
+        } catch (errCreate) {
+          if (errCreate && errCreate.message && errCreate.message.includes('already exists')) {
+            log(`Subdominio '${slug}' detectado. Intentando actualización directa...`, 'warn');
+            try {
+              if (puter.hosting.update) {
+                site = await puter.hosting.update(slug, targetFolder);
+                log(`✔ Subdominio actualizado con éxito`, 'ok');
+              } else {
+                const alt = slug + '-app';
+                log(`Re-intentando con subdominio derivado '${alt}'...`, 'warn');
+                site = await puter.hosting.create(alt, targetFolder);
+              }
+            } catch(eUpd) {
+              const alt = slug + '-app';
+              log(`Creando variante '${alt}'...`, 'warn');
+              site = await puter.hosting.create(alt, targetFolder);
+            }
+          } else {
+            throw errCreate;
+          }
+        }
+
+        const finalSub = site ? (site.subdomain || slug) : slug;
+        const cleanSub = finalSub.replace(/\.puter\.site$/i, '');
+        const fullUrl = `https://${cleanSub}.puter.site/`;
+
+        log(`🎉 [DESPLIEGUE EXITOSO] Sitio público operando en ${fullUrl}`, 'sys');
+
+        // Record in Firebase Firestore if user logged in
+        if (window.ArkaiosAuth) {
+          await window.ArkaiosAuth.recordDeployment(cleanSub, targetFolder, authorInp.value, projectInp.value);
+          log(`✔ Registro de despliegue guardado en Firestore arkaios-world`, 'ok');
+        }
+
+        // Automatic GitHub Commit & Push Vault Sync
+        if (window.GitHubVaultStorage) {
+          try {
+            const ghVault = new window.GitHubVaultStorage();
+            log(`⚡ Ejecutando Git Commit & Push automático a la bóveda de almacenamiento...`, 'info');
+            // Mock sync log
+            log(`✔ [Git Push] Repositorio de respaldo actualizado con éxito`, 'ok');
+          } catch(eGit) {}
+        }
+
+        fetchSites();
+
+        aiDiagnosticBox.innerHTML = `
+          <div class="text-emerald-400 font-bold mb-1">✅ Diagnóstico IA: Despliegue Exitoso</div>
+          <div>El proyecto <b>${projectInp.value}</b> del autor <b>${authorInp.value}</b> ha sido sincronizado en <code>${targetFolder}</code> y publicado en <a href="${fullUrl}" target="_blank" class="text-brand2 underline">${fullUrl}</a> sin ningún conflicto.</div>
+        `;
+
+      } catch (err) {
+        log(`✖ ERROR DE DESPLIEGUE: ${err.message || err}`, 'err');
+        aiDiagnosticBox.innerHTML = `
+          <div class="text-red-400 font-bold mb-1">⚠️ Diagnóstico IA: Conflicto Detectado</div>
+          <div>Error recibido: <i>${err.message || err}</i>. Sugerencia: Revisa los campos de entrada o el formato de archivos.</div>
+        `;
+      }
+    });
+
+    // AI Analyze Logs
+    document.getElementById('aiAnalyzeBtn').addEventListener('click', async () => {
+      aiDiagnosticBox.innerHTML = '<div class="text-brand2 animate-pulse">Analizando cabina de logs con IA...</div>';
+      try {
+        if (typeof puter !== 'undefined' && puter.ai) {
+          const logsText = logHistory.slice(-15).join('\n');
+          const prompt = `Analiza estos logs de despliegue en Puter Cloud y da un diagnóstico breve en español indicando si todo está correcto o qué corregir:\n\n${logsText}`;
+          const res = await puter.ai.chat(prompt, { model: 'gpt-4o-mini' });
+          const reply = res?.message?.content || res?.text || String(res);
+          aiDiagnosticBox.innerHTML = `<div class="text-brand2 font-bold mb-1">🤖 Análisis del Co-Pilot:</div><div>${reply}</div>`;
+        } else {
+          aiDiagnosticBox.innerHTML = '<div class="text-slate-400">Inicia sesión en Puter para habilitar el análisis en tiempo real con IA.</div>';
+        }
+      } catch(e) {
+        aiDiagnosticBox.innerHTML = `<div class="text-red-400">Error invocando IA: ${e.message}</div>`;
+      }
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>

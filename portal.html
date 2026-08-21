@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PuterLab Nexus IDE & Deploy Hub — Ecosistema AI en Vercel & Puter Cloud</title>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- Puter.js -->
+<script src="https://js.puter.com/v2/"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: { colors: {
+    ink: '#090b10', panel: '#111420', panel2: '#181c2b', borderEdge: '#23283b',
+    brand: '#6366f1', brand2: '#818cf8', accent: '#10b981'
+  } } }
+}
+</script>
+<style>
+  .glass { background: rgba(17, 20, 32, 0.75); backdrop-filter: blur(16px); }
+  .glow-purple { box-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.3); }
+</style>
+</head>
+<body class="bg-ink text-slate-100 font-sans min-h-screen flex flex-col antialiased relative overflow-x-hidden">
+
+  <!-- Background Ambient Lights -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-brand/15 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none"></div>
+
+  <!-- Header Navigation -->
+  <header class="h-16 border-b border-borderEdge glass px-6 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand to-purple-500 flex items-center justify-center font-bold text-white shadow-lg shadow-brand/20">
+        ▲
+      </div>
+      <div>
+        <span class="font-bold tracking-tight text-white text-base">PuterLab <span class="text-brand2">Nexus Portal</span></span>
+        <span class="text-[10px] ml-2 px-2 py-0.5 rounded-full bg-brand/20 text-brand2 border border-brand/30">v1.0 Suite</span>
+      </div>
+    </div>
+
+    <!-- Auth Bar -->
+    <div class="flex items-center gap-3">
+      <!-- Google Auth Profile Pill -->
+      <button id="googleLoginBtn" class="bg-white hover:bg-slate-100 text-slate-900 text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 shadow">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Acceder con Google</span>
+      </button>
+
+      <div id="googleUserPill" class="hidden flex items-center gap-2 bg-panel2 border border-borderEdge px-2.5 py-1 rounded-lg">
+        <img id="googleAvatar" src="" class="w-6 h-6 rounded-full border border-brand/50">
+        <div class="text-[11px] leading-tight">
+          <div id="googleName" class="font-bold text-white"></div>
+          <div id="googleEmail" class="text-slate-400 text-[10px]"></div>
+        </div>
+        <button id="googleLogoutBtn" class="text-slate-400 hover:text-red-400 text-xs ml-1">✕</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col items-center text-center">
+
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand/10 border border-brand/30 text-brand2 text-xs font-semibold mb-6">
+      ✨ Ecosistema Integrado Vercel + Puter Cloud + Firebase Google Auth
+    </div>
+
+    <h1 class="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mb-4">
+      Despliega y Programa Aplicaciones Web con <span class="bg-gradient-to-r from-brand via-purple-400 to-emerald-400 bg-clip-text text-transparent">Agentes de IA</span>
+    </h1>
+
+    <p class="text-slate-400 text-sm md:text-base max-w-2xl mb-10 leading-relaxed">
+      La plataforma All-in-One para crear, editar, alojar y gestionar proyectos en la nube de Puter. Con soporte de Google Auth, Vercel Deploy Hub y ejecutable nativo para Windows.
+    </p>
+
+    <!-- 3 Core Access Gateway Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left mb-12">
+
+      <!-- Card 1: IDE Web -->
+      <a href="index.html" class="bg-panel/90 border border-borderEdge hover:border-brand/60 rounded-2xl p-6 flex flex-col justify-between transition-all hover:scale-[1.02] shadow-xl group">
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-brand/20 text-brand2 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-brand group-hover:text-white transition-colors">
+            💻
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">PuterLab IDE</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-4">
+            Entorno de desarrollo tipo VSCode con editor de código, explorador, terminal y Agente IA vivo que programa por ti.
+          </p>
+        </div>
+        <div class="text-xs font-semibold text-brand2 group-hover:underline flex items-center gap-1">
+          Abrir Editor Web →
+        </div>
+      </a>
+
+      <!-- Card 2: Deploy Hub -->
+      <a href="deploy-hub.html" class="bg-panel/90 border border-borderEdge hover:border-brand/60 rounded-2xl p-6 flex flex-col justify-between transition-all hover:scale-[1.02] shadow-xl group glow-purple">
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+            🚀
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Antigravity Deploy Hub</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-4">
+            Tu Vercel/Render en la nube de Puter. Sube carpetas locales, repos de GitHub o proyectos del IDE con subdominios y cabina de logs en vivo.
+          </p>
+        </div>
+        <div class="text-xs font-semibold text-purple-400 group-hover:underline flex items-center gap-1">
+          Lanzar Despliegues →
+        </div>
+      </a>
+
+      <!-- Card 3: Windows EXE Installer -->
+      <a href="dist/PuterLab%20Nexus%20IDE%20Setup%201.0.0.exe" download class="bg-panel/90 border border-borderEdge hover:border-emerald-500/60 rounded-2xl p-6 flex flex-col justify-between transition-all hover:scale-[1.02] shadow-xl group">
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+            📦
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">App de Escritorio (.exe)</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-4">
+            Descarga el ejecutable nativo de Windows (77 MB). Funciona offline con acceso directo a PowerShell, CMD y carpetas del disco local.
+          </p>
+        </div>
+        <div class="text-xs font-semibold text-emerald-400 group-hover:underline flex items-center gap-1">
+          Descargar .exe Instalador ↓
+        </div>
+      </a>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-borderEdge py-6 text-center text-xs text-slate-500">
+    PuterLab Nexus Suite © 2026 — ARKAIOS System Ecosystem
+  </footer>
+
+  <script>
+    if (window.ArkaiosAuth) {
+      window.ArkaiosAuth.onAuthChange((user) => {
+        const btn = document.getElementById('googleLoginBtn');
+        const pill = document.getElementById('googleUserPill');
+        if (user) {
+          btn.classList.add('hidden');
+          pill.classList.remove('hidden');
+          document.getElementById('googleAvatar').src = user.photoURL || '';
+          document.getElementById('googleName').textContent = user.displayName || 'Google User';
+          document.getElementById('googleEmail').textContent = user.email || '';
+        } else {
+          btn.classList.remove('hidden');
+          pill.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+        await window.ArkaiosAuth.signInWithGoogle();
+      });
+
+      document.getElementById('googleLogoutBtn').addEventListener('click', async () => {
+        await window.ArkaiosAuth.signOut();
+      });
+    }
+  </script>
+</body>
+</html>

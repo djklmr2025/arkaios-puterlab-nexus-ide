@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Actualizar Puter Hosting</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { background: #161922; border: 1px solid #2a2e3d; border-radius: 12px; padding: 28px; width: 460px; text-align: center; }
+    h2 { color: #818cf8; margin-top: 0; font-size: 20px; }
+    button { background: #6366f1; color: white; border: 0; padding: 11px 22px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 14px; transition: background 0.2s; }
+    button:hover { background: #4f46e5; }
+    input { background: #0d0f16; border: 1px solid #2a2e3d; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; width: 80%; font-size: 13px; text-align: center; margin-top: 8px; font-weight: 600; }
+    .status { margin-top: 18px; font-size: 13px; color: #10b981; word-break: break-all; line-height: 1.5; }
+    .badge { background: #262b3d; color: #818cf8; font-size: 11px; padding: 3px 8px; border-radius: 12px; display: inline-block; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">PuterLab Deployment Tool v2.0</div>
+    <h2>🚀 Publicar en Puter Hosting</h2>
+    <p style="font-size: 13px; color: #8b93a7;">Publica tu subdominio oficial en la nube de Puter.</p>
+    
+    <label style="font-size: 12px; color: #8b93a7; display: block; margin-top: 10px;">Subdominio deseado (sin espacios):</label>
+    <input type="text" id="subdomainInp" value="arkaios-lab">
+
+    <br>
+    <button id="deployBtn">Sincronizar y Publicar</button>
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    const FILES = [
+      'index.html',
+      'styles.css',
+      'app.js',
+      'store.js',
+      'local-fs.js',
+      'md.js',
+      'manifest.json',
+      'icon.svg'
+    ];
+
+    function cleanSubdomain(str) {
+      return str.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    const inp = document.getElementById('subdomainInp');
+    inp.addEventListener('input', () => {
+      inp.value = cleanSubdomain(inp.value);
+    });
+
+    document.getElementById('deployBtn').addEventListener('click', async () => {
+      const statusEl = document.getElementById('status');
+      let sub = cleanSubdomain(inp.value);
+      if (!sub) sub = 'arkaios-lab';
+      inp.value = sub;
+
+      statusEl.style.color = '#818cf8';
+      statusEl.textContent = 'Autenticando en Puter...';
+
+      try {
+        if (!puter.auth.isSignedIn()) {
+          await puter.auth.signIn();
+        }
+
+        const folderName = sub; // Nombre de carpeta relativo en puter.fs
+        statusEl.textContent = `1/2 Sincronizando carpeta '${folderName}' en Puter.fs...`;
+        
+        try {
+          await puter.fs.mkdir(folderName);
+        } catch(e){}
+
+        for (const file of FILES) {
+          try {
+            const res = await fetch('http://localhost:8000/' + file);
+            if (res.ok) {
+              const text = await res.text();
+              await puter.fs.write(folderName + '/' + file, text);
+            }
+          } catch(e) {
+            console.error('Error guardando ' + file, e);
+          }
+        }
+
+        statusEl.textContent = `2/2 Alojando '${folderName}' en Puter Hosting...`;
+        let site = null;
+
+        try {
+          site = await puter.hosting.create(sub, folderName);
+        } catch (errCreate) {
+          if (errCreate && errCreate.message && errCreate.message.includes('already exists')) {
+            try {
+              if (puter.hosting.update) {
+                site = await puter.hosting.update(sub, folderName);
+              } else {
+                site = await puter.hosting.create(sub + '-app', folderName);
+              }
+            } catch(errUpd) {
+              site = await puter.hosting.create(sub + '-app', folderName);
+            }
+          } else {
+            throw errCreate;
+          }
+        }
+
+        const finalSub = site ? (site.subdomain || sub) : sub;
+        const cleanSub = finalSub.replace(/\.puter\.site$/i, '');
+        const fullUrl = `https://${cleanSub}.puter.site/`;
+
+        statusEl.style.color = '#10b981';
+        statusEl.innerHTML = `✅ <b>¡Publicado y actualizado con éxito!</b><br><br><a href="${fullUrl}" target="_blank" style="color: #818cf8; font-weight: bold; font-size: 16px; text-decoration: underline;">Abrir ${fullUrl}</a>`;
+      } catch (err) {
+        statusEl.style.color = '#ef4444';
+        statusEl.textContent = 'Error al publicar: ' + (err.message || err);
+      }
+    });
+  </script>
+</body>
+</html>

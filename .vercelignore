@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+*.exe
+*.zip
+*.tar.gz
+main.js
+server.mjs

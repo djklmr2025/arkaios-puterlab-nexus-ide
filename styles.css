@@ -1,0 +1,101 @@
+/* PuterLab IDE */
+* { -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif; }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2c3244; border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #3a4258; background-clip: content-box; }
+
+.rail-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #8b93a7; position: relative; transition: all .15s;
+}
+.rail-btn:hover { color: #e2e8f0; background: #1b1f2e; }
+.rail-btn.active { color: #fff; background: #1b1f2e; }
+.rail-btn.active::before {
+  content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px;
+  width: 2.5px; border-radius: 2px; background: #6366f1;
+}
+
+/* File tree */
+.tree-item {
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px;
+  cursor: pointer; user-select: none; border-radius: 6px; margin: 0 4px;
+  color: #c3c9d6; white-space: nowrap;
+}
+.tree-item:hover { background: #1b1f2e; }
+.tree-item.active { background: #262b3d; color: #fff; }
+.tree-item .name { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.tree-item .actions { display: none; gap: 2px; }
+.tree-item:hover .actions { display: flex; }
+.tree-item .actions button { padding: 2px; border-radius: 4px; color: #8b93a7; }
+.tree-item .actions button:hover { background: #333a50; color: #fff; }
+
+/* Tabs */
+.tab {
+  display: flex; align-items: center; gap: 7px; padding: 0 10px 0 12px;
+  border-right: 1px solid #262b3d; cursor: pointer; font-size: 13px;
+  color: #8b93a7; white-space: nowrap; min-width: 0; max-width: 200px;
+  position: relative;
+}
+.tab:hover { background: #1b1f2e; color: #c3c9d6; }
+.tab.active { background: #0d0f16; color: #fff; }
+.tab.active::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #6366f1;
+}
+.tab .tname { overflow: hidden; text-overflow: ellipsis; }
+.tab .close { padding: 2px; border-radius: 4px; opacity: .6; }
+.tab .close:hover { background: #333a50; opacity: 1; }
+.tab .dot { width: 7px; height: 7px; border-radius: 50%; background: #818cf8; }
+
+/* Chat bubbles */
+.msg-user { background: #262b3d; }
+.msg-ai { background: #1b1f2e; border: 1px solid #262b3d; }
+.chat-bubble { border-radius: 10px; padding: 8px 11px; line-height: 1.5; word-break: break-word; }
+.chat-bubble pre {
+  background: #0d0f16; border: 1px solid #262b3d; border-radius: 8px;
+  padding: 9px 11px; margin: 7px 0; overflow-x: auto; font-size: 12px;
+  font-family: ui-monospace, monospace;
+}
+.chat-bubble code { font-family: ui-monospace, monospace; font-size: 12px; }
+.chat-bubble p code { background: #0d0f16; padding: 1px 5px; border-radius: 4px; }
+.chat-bubble a { color: #818cf8; text-decoration: underline; }
+
+.file-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+  background: #0d0f16; border: 1px solid #262b3d; border-radius: 6px;
+  padding: 2px 7px; margin: 2px 3px 2px 0; color: #a5b4fc;
+}
+
+.typing span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #818cf8; margin: 0 1px; animation: blink 1.2s infinite; }
+.typing span:nth-child(2){ animation-delay:.2s } .typing span:nth-child(3){ animation-delay:.4s }
+@keyframes blink { 0%,60%,100%{opacity:.25} 30%{opacity:1} }
+
+.term-line { white-space: pre-wrap; word-break: break-word; }
+.term-err { color: #f87171; } .term-ok { color: #34d399; } .term-dim { color: #8b93a7; } .term-brand { color: #818cf8; }
+
+#editor { tab-size: 2; caret-color: #818cf8; }
+#editor::placeholder { color: #3a4258; }
+
+/* Agent quick chips */
+.quick-chip {
+  flex: 0 0 auto; font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid #262b3d; background: #151823; color: #8b93a7;
+  white-space: nowrap; transition: all .15s;
+}
+.quick-chip:hover { border-color: #6366f1; color: #c3c9d6; background: #1b1f2e; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Chat bubbles a touch roomier */
+#chatLog .chat-bubble { font-size: 13px; }
+
+/* Right-side agent chat panel */
+#chatPanel { max-width: 92vw; }
+@media (max-width: 700px) {
+  /* On small screens the chat floats over the editor as a drawer */
+  #chatPanel { position: fixed; top: 2.75rem; right: 0; bottom: 0; width: 88vw !important; z-index: 45; }
+  #chatResizer { display: none !important; }
+}
