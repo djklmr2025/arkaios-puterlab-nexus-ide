@@ -11,8 +11,8 @@
     { "src": "icons/*", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/", "dest": "/portal.html" },
-    { "src": "/ide", "dest": "/index.html" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/ide", "dest": "/ide.html" },
     { "src": "/deploy", "dest": "/deploy-hub.html" }
   ]
 }
