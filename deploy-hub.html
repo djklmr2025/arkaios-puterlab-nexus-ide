@@ -121,7 +121,7 @@ tailwind.config = {
               <div id="puterAuthSubtext" class="text-[11px] text-slate-300 mt-0.5">Conecta tu cuenta oficial para almacenar archivos en tu espacio <code>puter.fs</code> y publicar sitios en tu usuario.</div>
             </div>
           </div>
-          <button id="connectPuterBannerBtn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-all shadow-md shrink-0 ml-3 text-xs flex items-center gap-1">
+          <button id="connectPuterBannerBtn" onclick="triggerPuterLogin()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-all shadow-md shrink-0 ml-3 text-xs flex items-center gap-1 cursor-pointer">
             <span>⚡ Conectar Puter</span>
           </button>
         </div>
@@ -733,15 +733,19 @@ tailwind.config = {
       }
     }
 
-    async function triggerPuterLogin() {
+    window.triggerPuterLogin = async function triggerPuterLogin() {
       try {
         log(`Iniciando ventana de autenticación oficial en Puter Cloud...`, 'info');
-        await puter.auth.signIn();
-        await checkAuth();
+        if (typeof puter !== 'undefined' && puter.auth) {
+          await puter.auth.signIn();
+          await checkAuth();
+        } else {
+          log(`Puter.js no está disponible. Esperando carga...`, 'warn');
+        }
       } catch(e) {
         log(`Error en inicio de sesión de Puter: ${e.message}`, 'err');
       }
-    }
+    };
 
     authBtn.addEventListener('click', async () => {
       if (puter.auth.isSignedIn()) {
@@ -1148,7 +1152,7 @@ Ejemplo:
 <head>
   <meta charset="UTF-8">
   <title>App Generada por IA</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com"></` + `script>
 </head>
 <body class="bg-slate-900 text-white flex items-center justify-center min-h-screen">
   <h1 class="text-3xl font-bold">¡Sitio Creado por el Agente Experto!</h1>
