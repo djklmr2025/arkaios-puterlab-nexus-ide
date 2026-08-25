@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARKAIOS Pay — Demo de Checkout Universal (Estilo Stripe / PayPal)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/amr-wallet.js"></script>
+  <script src="assets/arkaios-pay.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+  
+  <!-- Header Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-amber-400 text-lg shadow">
+        ⚡
+      </div>
+      <div>
+        <h1 class="font-bold text-white text-base">ARKAIOS Pay Checkout Demo</h1>
+        <p class="text-xs text-slate-400">Pasarela Universal de Pagos e Interconexión de Cartera AMR</p>
+      </div>
+    </div>
+
+    <!-- Live AMR Wallet Widget -->
+    <div id="demoWalletContainer" class="min-w-[280px]"></div>
+  </header>
+
+  <!-- Main Showcase Container -->
+  <main class="max-w-4xl mx-auto px-6 py-10 flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+    
+    <!-- Product Showcase Card -->
+    <div class="bg-slate-900/80 border border-amber-500/30 rounded-2xl p-6 shadow-2xl space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+          🛒 Producto de Prueba
+        </span>
+        <span class="text-xs text-slate-400">Merchant ID: #ARK-SHOP-99</span>
+      </div>
+
+      <div class="space-y-2">
+        <h2 class="text-xl font-extrabold text-white">Suscripción Licencia ARKAIOS God Owner</h2>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Acceso ilimitado a todos los nodos del ecosistema, despliegues sin límites en Puter Cloud y cuota de inferencia en Gemini 1.5 Pro / GPT-4o.
+        </p>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+        <span class="text-xs text-slate-400">Precio Total:</span>
+        <span class="text-2xl font-black text-amber-400">49.99 AMR</span>
+      </div>
+
+      <!-- Stripe / PayPal-Style ARKAIOS Pay Smart Buttons -->
+      <div class="space-y-3 pt-2">
+        <button 
+          data-arkaios-pay="49.99" 
+          data-concept="Licencia ARKAIOS God Owner (Anual)" 
+          data-on-success="onPaymentComplete"
+          class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm cursor-pointer">
+          <span>⚡ Pagar con ARKAIOS Pay (1-Clic)</span>
+        </button>
+
+        <button 
+          onclick="customCheckoutManual()"
+          class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-4 rounded-xl border border-slate-700 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer">
+          <span>💳 Abrir Modal por JavaScript API (`ArkaiosPay.checkout()`)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Integration Code Snippet Card -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4 font-mono text-xs">
+      <div class="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
+        <span class="font-bold text-slate-200">💻 Integración en Cualquier Web</span>
+        <span>HTML + JS</span>
+      </div>
+      
+      <p class="text-slate-400 font-sans text-xs">
+        Inserta este script en cualquier repositorio o sitio web para aceptar pagos instantáneos con la cartera del usuario:
+      </p>
+
+      <pre class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-amber-300/90 overflow-x-auto text-[11px] leading-relaxed">
+<code>&lt;!-- 1. Incluir el SDK de ARKAIOS Pay --&gt;
+&lt;script src="https://arkaios-puterlab-nexus-ide.vercel.app/assets/arkaios-pay.js"&gt;&lt;/script&gt;
+
+&lt;!-- 2. Botón de Pago estilo Stripe --&gt;
+&lt;button data-arkaios-pay="49.99" 
+        data-concept="Licencia Premium" 
+        data-on-success="miFuncionDeExito"&gt;
+  ⚡ Pagar con ARKAIOS Pay
+&lt;/button&gt;</code></pre>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 px-6 py-4 text-center text-xs text-slate-500">
+    ARKAIOS Pay Universal Protocol &copy; 2026 — Interconectando Cartera Real AMR en todo el Ecosistema
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Initialize Wallet Widget in header
+      if (window._amrWallet) {
+        await window._amrWallet.connect();
+        window._amrWallet.renderWidget('demoWalletContainer');
+      }
+    });
+
+    function customCheckoutManual() {
+      if (window.ArkaiosPay) {
+        window.ArkaiosPay.checkout({
+          amount: 49.99,
+          concept: "Licencia ARKAIOS God Owner via JS API",
+          onSuccess: (res) => {
+            alert("🎉 ¡Pago recibido con éxito por ARKAIOS Pay!\nID Transacción: " + res.txId);
+            if (window._amrWallet) window._amrWallet.renderWidget('demoWalletContainer');
+          }
+        });
+      }
+    }
+
+    window.onPaymentComplete = function(res) {
+      alert("🎉 ¡Transacción confirmada en la Red ARKAIOS!\nTransacción ID: " + res.txId + "\nNuevo Saldo: " + res.remainingBalance + " AMR");
+      if (window._amrWallet) window._amrWallet.renderWidget('demoWalletContainer');
+    };
+  </script>
+</body>
+</html>
