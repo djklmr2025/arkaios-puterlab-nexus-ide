@@ -108,6 +108,20 @@ tailwind.config = {
             </h2>
             <p class="text-xs text-slate-400 mt-1">Sube desde carpetas locales, GitHub o el IDE y asigna un subdominio oficial estilo Vercel / Render.</p>
           </div>
+        <!-- Puter Real User Account & Space Banner -->
+        <div id="puterAuthBanner" class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-200 transition-all">
+          <div class="flex items-center gap-2.5">
+            <span class="text-lg">👤</span>
+            <div>
+              <div class="font-bold text-white flex items-center gap-2">
+                <span>Cuenta de Puter.com: <span id="puterAuthStatusText" class="text-amber-400">Desconectada</span></span>
+              </div>
+              <div id="puterAuthSubtext" class="text-[11px] text-slate-300">Conecta tu cuenta oficial para almacenar archivos en tu espacio <code>puter.fs</code> y publicar sitios en tu usuario.</div>
+            </div>
+          </div>
+          <button id="connectPuterBannerBtn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-all shadow-md shrink-0 ml-2 text-xs flex items-center gap-1">
+            <span>⚡ Conectar Puter</span>
+          </button>
         </div>
 
         <!-- Source Selector Tabs -->
@@ -608,20 +622,79 @@ tailwind.config = {
       });
     }
 
-    // Puter Auth logic
+    // Puter Auth logic & Real User Space Detector
     async function checkAuth() {
+      const banner = document.getElementById('puterAuthBanner');
+      const statusText = document.getElementById('puterAuthStatusText');
+      const subtext = document.getElementById('puterAuthSubtext');
+      const bannerBtn = document.getElementById('connectPuterBannerBtn');
+
       if (typeof puter !== 'undefined' && puter.auth && puter.auth.isSignedIn()) {
         try {
           const user = await puter.auth.getUser();
-          userLabel.textContent = user.username || 'Puter Conectado';
-          userLabel.previousElementSibling.className = 'w-2 h-2 rounded-full bg-emerald-400';
-          authBtn.textContent = 'Cerrar Puter';
+          const username = user.username || 'Usuario Conectado';
+
+          userLabel.textContent = `@${username}`;
+          userLabel.previousElementSibling.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          authBtn.textContent = 'Cerrar Sesión Puter';
+
+          if (authorInp && username) {
+            authorInp.value = cleanSlug(username);
+            updatePreview();
+          }
+
+          if (banner) {
+            banner.className = 'mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300 transition-all';
+            if (statusText) {
+              statusText.className = 'text-emerald-400 font-bold';
+              statusText.textContent = `@${username} (Conectada)`;
+            }
+            if (subtext) {
+              subtext.innerHTML = `Espacio Nube Puter Activo. Archivos en <code>puter.fs</code> y subdominios vinculados a tu usuario real.`;
+            }
+            if (bannerBtn) {
+              bannerBtn.innerHTML = '<span>✔ Conectado</span>';
+              bannerBtn.className = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium px-3 py-1 rounded-lg text-xs shrink-0 ml-2 cursor-default';
+              bannerBtn.onclick = null;
+            }
+          }
+
+          log(`✔ Cuenta real de Puter.com verificada: '@${username}' (Espacio Nube listo)`, 'sys');
           fetchSites();
-        } catch(e){}
+          fetchCloudFs();
+        } catch(e) {
+          log(`Error leyendo usuario de Puter: ${e.message}`, 'err');
+        }
       } else {
         userLabel.textContent = 'Puter Desconectado';
         userLabel.previousElementSibling.className = 'w-2 h-2 rounded-full bg-amber-400';
         authBtn.textContent = 'Conectar Puter';
+
+        if (banner) {
+          banner.className = 'mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-200 transition-all';
+          if (statusText) {
+            statusText.className = 'text-amber-400 font-bold';
+            statusText.textContent = 'Desconectada';
+          }
+          if (subtext) {
+            subtext.innerHTML = `Conecta tu cuenta oficial de Puter.com para vincular tus subdominios y espacio <code>puter.fs</code> real.`;
+          }
+          if (bannerBtn) {
+            bannerBtn.innerHTML = '<span>⚡ Conectar Puter</span>';
+            bannerBtn.className = 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-all shadow-md shrink-0 ml-2 text-xs flex items-center gap-1 cursor-pointer';
+            bannerBtn.onclick = triggerPuterLogin;
+          }
+        }
+      }
+    }
+
+    async function triggerPuterLogin() {
+      try {
+        log(`Iniciando ventana de autenticación oficial en Puter Cloud...`, 'info');
+        await puter.auth.signIn();
+        await checkAuth();
+      } catch(e) {
+        log(`Error en inicio de sesión de Puter: ${e.message}`, 'err');
       }
     }
 
@@ -631,8 +704,7 @@ tailwind.config = {
         checkAuth();
         sitesList.innerHTML = '<div class="text-center py-8 text-xs text-slate-500">Sesión de Puter cerrada</div>';
       } else {
-        await puter.auth.signIn();
-        checkAuth();
+        triggerPuterLogin();
       }
     });
 
