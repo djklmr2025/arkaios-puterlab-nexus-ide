@@ -898,6 +898,36 @@ const commands = {
       t.split('\n').forEach(l => termLog(l));
     } catch (e) { termLog('error IA: ' + (e.message||e), 'err'); }
   },
+  async deploy(args) {
+    const proj = args[0] || 'app';
+    termLog(`› iniciando despliegue en Puter Cloud para '${proj}'...`, 'dim');
+    if (typeof puter === 'undefined' || !puter.auth) {
+      return termLog('error: Puter.js no disponible', 'err');
+    }
+    if (!puter.auth.isSignedIn()) {
+      termLog('solicitando inicio de sesión en Puter...', 'dim');
+      await puter.auth.signIn();
+    }
+    const u = await puter.auth.getUser();
+    const author = (u?.username || 'arkaios').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const slug = `${author}-${cleanSlug(proj)}`;
+    const targetFolder = '/' + slug;
+
+    try {
+      try { await puter.fs.mkdir(targetFolder); } catch(e){}
+      const paths = listFilePaths();
+      termLog(`guardando ${paths.length} archivo(s) en ${targetFolder}...`, 'dim');
+      for (const p of paths) {
+        const c = await readFileAsync(p);
+        if (c != null) await puter.fs.write(targetFolder + '/' + p, c);
+      }
+      const site = await puter.hosting.create(slug, targetFolder);
+      const fullUrl = `https://${site.subdomain || slug}.puter.site/`;
+      termHTML(`<span class="term-ok">✔ Proyecto desplegado con éxito:</span> <a href="${fullUrl}" target="_blank" style="color:#a855f7;text-decoration:underline;">${fullUrl}</a>`);
+    } catch(errDep) {
+      termLog(`error en despliegue: ${errDep.message || errDep}`, 'err');
+    }
+  },
 };
 
 async function runCommand(raw, opts = {}) {

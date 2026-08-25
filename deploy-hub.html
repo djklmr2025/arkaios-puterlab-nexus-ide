@@ -266,21 +266,64 @@ tailwind.config = {
         </div>
       </div>
 
-      <!-- AI Diagnostic Co-Pilot Card -->
-      <div class="bg-panel border border-borderEdge rounded-xl p-5 shadow-xl flex flex-col flex-1">
-        <div class="flex items-center justify-between mb-3">
+      <!-- AI Deployment Expert Agent Console -->
+      <div class="bg-panel border border-purple-800/40 rounded-xl p-5 shadow-xl flex flex-col flex-1 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between mb-3 border-b border-borderEdge pb-2.5">
           <div class="flex items-center gap-2">
-            <div class="w-5 h-5 rounded bg-brand/20 flex items-center justify-center text-brand2 font-bold text-xs">🤖</div>
-            <h3 class="font-bold text-white text-sm">IA Co-Pilot de Despliegues & Git Auto-Push</h3>
+            <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 to-fuchsia-600 flex items-center justify-center text-white font-bold text-sm shadow">
+              🤖
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-xs flex items-center gap-1.5">
+                <span>Agente Experto en Despliegues</span>
+                <span class="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded-full">Ejecutor Autónomo</span>
+              </h3>
+              <div class="text-[10px] text-slate-400">Pídele auditar, crear, reestructurar o desplegar cualquier web</div>
+            </div>
           </div>
-          <button id="aiAnalyzeBtn" class="bg-panel2 hover:bg-borderEdge text-xs text-brand2 px-2.5 py-1 rounded border border-borderEdge transition-colors">
-            🔍 Analizar Cabina .log
+
+          <div class="flex items-center gap-2">
+            <select id="agentModelSel" class="bg-ink border border-borderEdge text-[10px] text-purple-300 rounded px-1.5 py-1 focus:outline-none focus:border-brand">
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+              <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            </select>
+            <button id="aiAnalyzeBtn" class="bg-panel2 hover:bg-borderEdge text-[10px] text-brand2 px-2 py-1 rounded border border-borderEdge transition-colors">
+              🔍 Analizar .Log
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Action Prompt Pills -->
+        <div class="flex items-center gap-1.5 mb-3 overflow-x-auto text-[10px] pb-1">
+          <button onclick="sendQuickAgentPrompt('Analiza los archivos del .ZIP o repositorio cargado, verifica la estructura y ejecútalos.')" class="bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/30 text-purple-200 px-2 py-1 rounded-md whitespace-nowrap transition-colors">
+            ⚡ Audit & Deploy
+          </button>
+          <button onclick="sendQuickAgentPrompt('Crea una landing page moderna de tecnología con Tailwind CSS y desplegala en mi subdominio de Puter Cloud.')" class="bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/30 text-purple-200 px-2 py-1 rounded-md whitespace-nowrap transition-colors">
+            ✨ Generar & Desplegar Web
+          </button>
+          <button onclick="sendQuickAgentPrompt('Inspecciona los logs e indícame si hay errores o rutas de archivos faltantes.')" class="bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/30 text-purple-200 px-2 py-1 rounded-md whitespace-nowrap transition-colors">
+            🔍 Diagnosticar .Log
           </button>
         </div>
 
-        <div id="aiDiagnosticBox" class="flex-1 bg-ink/60 border border-borderEdge rounded-lg p-3 text-xs leading-relaxed overflow-y-auto text-slate-300">
-          El Co-Pilot monitorea la cabina de `.log` durante la sincronización y realiza Git Commit & Push automático a tus repositorios.
+        <!-- Chat Output Drawer -->
+        <div id="aiDiagnosticBox" class="flex-1 bg-ink/80 border border-borderEdge rounded-lg p-3 text-xs leading-relaxed overflow-y-auto text-slate-200 space-y-2 max-h-56 font-sans">
+          <div class="bg-purple-950/40 border border-purple-800/40 rounded-lg p-2.5 text-[11px] text-purple-200">
+            👋 <b>¡Hola! Soy el Agente Experto en Despliegues de PuterLab.</b><br>
+            Tengo <b>derechos de ejecución directa</b> sobre Puter.fs y Puter Hosting. Puedes pedirme crear webs desde cero, auditar tus <code>.zip</code> o repositorios de GitHub. ¡Yo armo las carpetas y publico el sitio por ti!
+          </div>
         </div>
+
+        <!-- Prompt Input Form -->
+        <form id="agentPromptForm" class="mt-3 flex items-center gap-2">
+          <input type="text" id="agentPromptInp" placeholder="Escribe tu instrucción o pide crear una web..." required class="flex-1 bg-ink border border-borderEdge rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand">
+          <button type="submit" id="sendAgentBtn" class="bg-gradient-to-r from-brand to-purple-600 hover:from-brand2 hover:to-purple-500 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow transition-all shrink-0">
+            Enviar 🚀
+          </button>
+        </form>
       </div>
 
     </div>
@@ -1052,23 +1095,126 @@ tailwind.config = {
       }
     });
 
-    // AI Analyze Logs
-    document.getElementById('aiAnalyzeBtn').addEventListener('click', async () => {
-      aiDiagnosticBox.innerHTML = '<div class="text-brand2 animate-pulse">Analizando cabina de logs con IA...</div>';
-      try {
-        if (typeof puter !== 'undefined' && puter.ai) {
-          const logsText = logHistory.slice(-15).join('\n');
-          const prompt = `Analiza estos logs de despliegue en Puter Cloud y da un diagnóstico breve en español indicando si todo está correcto o qué corregir:\n\n${logsText}`;
-          const res = await puter.ai.chat(prompt, { model: 'gpt-4o-mini' });
-          const reply = res?.message?.content || res?.text || String(res);
-          aiDiagnosticBox.innerHTML = `<div class="text-brand2 font-bold mb-1">🤖 Análisis del Co-Pilot:</div><div>${reply}</div>`;
-        } else {
-          aiDiagnosticBox.innerHTML = '<div class="text-slate-400">Inicia sesión en Puter para habilitar el análisis en tiempo real con IA.</div>';
-        }
-      } catch(e) {
-        aiDiagnosticBox.innerHTML = `<div class="text-red-400">Error invocando IA: ${e.message}</div>`;
+    // ================= AI Deployment Expert Agent Engine =================
+    const agentPromptForm = document.getElementById('agentPromptForm');
+    const agentPromptInp = document.getElementById('agentPromptInp');
+    const agentModelSel = document.getElementById('agentModelSel');
+    const aiDiagnosticBox = document.getElementById('aiDiagnosticBox');
+
+    window.sendQuickAgentPrompt = function(promptText) {
+      if (agentPromptInp) {
+        agentPromptInp.value = promptText;
+        agentPromptForm.dispatchEvent(new Event('submit'));
       }
-    });
+    };
+
+    if (agentPromptForm) {
+      agentPromptForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = agentPromptInp.value.trim();
+        if (!query) return;
+
+        // Render User Message
+        const userDiv = document.createElement('div');
+        userDiv.className = 'bg-brand/20 border border-brand/40 rounded-lg p-2 text-slate-100 font-medium text-xs text-right mb-2';
+        userDiv.textContent = query;
+        aiDiagnosticBox.appendChild(userDiv);
+        aiDiagnosticBox.scrollTop = aiDiagnosticBox.scrollHeight;
+        agentPromptInp.value = '';
+
+        // Thinking Indicator
+        const thinkDiv = document.createElement('div');
+        thinkDiv.className = 'bg-purple-950/50 border border-purple-800/40 rounded-lg p-2 text-purple-300 animate-pulse text-xs mb-2';
+        thinkDiv.textContent = '🤖 El Agente Experto en Despliegues está analizando tu instrucción y estructurando los recursos...';
+        aiDiagnosticBox.appendChild(thinkDiv);
+        aiDiagnosticBox.scrollTop = aiDiagnosticBox.scrollHeight;
+
+        try {
+          if (typeof puter === 'undefined' || !puter.ai) {
+            throw new Error("Puter AI no disponible. Conecta tu sesión de Puter.");
+          }
+
+          const model = agentModelSel ? agentModelSel.value : 'gpt-4o-mini';
+          const logsContext = logHistory.slice(-10).join('\n');
+          const systemInstruction = `
+Eres el AGENTE EXPERTO EN DESPLIEGUES de PuterLab & ARKAIOS.
+Tienes derechos de ejecución total sobre Puter.fs y Puter Hosting.
+
+Si el usuario solicita generar o crear una web desde cero, debes responder con tu sugerencia técnica conversacional breve Y con los bloques de código @@FILE:nombre.ext ... @@END.
+Ejemplo:
+@@FILE:index.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>App Generada por IA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen">
+  <h1 class="text-3xl font-bold">¡Sitio Creado por el Agente Experto!</h1>
+</body>
+</html>
+@@END
+
+@@PROJECT:mi-app-ia
+
+Contexto reciente de logs:
+${logsContext}
+`;
+
+          const res = await puter.ai.chat(systemInstruction + '\n\nSolicitud del usuario: ' + query, { model });
+          const replyText = res?.message?.content || res?.text || String(res);
+
+          if (thinkDiv && thinkDiv.parentNode) aiDiagnosticBox.removeChild(thinkDiv);
+
+          // Render Agent Reply
+          const agentReplyDiv = document.createElement('div');
+          agentReplyDiv.className = 'bg-purple-950/60 border border-purple-600/40 rounded-lg p-2.5 text-slate-100 text-xs leading-relaxed space-y-1.5 mb-2';
+          
+          // Check if agent generated files (@@FILE:...)
+          const fileMatches = [...replyText.matchAll(/@@FILE:([^\n]+)\n([\s\S]*?)@@END/g)];
+          const projMatch = replyText.match(/@@PROJECT:([^\n]+)/);
+
+          let displayReply = replyText.replace(/@@FILE:[^\n]*\n[\s\S]*?@@END/g, '').replace(/@@PROJECT:[^\n]+/g, '').trim();
+          agentReplyDiv.innerHTML = `<div><b>🤖 Agente Experto:</b> ${displayReply.replace(/\n/g, '<br>')}</div>`;
+          aiDiagnosticBox.appendChild(agentReplyDiv);
+
+          if (fileMatches.length > 0) {
+            const projName = projMatch ? cleanSlug(projMatch[1]) : 'app-ia-' + Math.floor(Math.random() * 1000);
+            projectInp.value = projName;
+            updatePreview();
+
+            const targetFolder = '/' + updatePreview();
+            try { await puter.fs.mkdir(targetFolder); } catch(e){}
+
+            log(`⚡ [Agente Experto] Generando y escribiendo ${fileMatches.length} archivo(s) en ${targetFolder}...`, 'sys');
+
+            for (const match of fileMatches) {
+              const filePath = match[1].trim();
+              const fileContent = match[2];
+              await puter.fs.write(targetFolder + '/' + filePath, fileContent);
+              log(`  ✔ [Agente PuterFS] Creado ${targetFolder}/${filePath}`, 'ok');
+            }
+
+            log(`🚀 [Agente Experto] Disparando pipeline de despliegue automático en Puter Cloud...`, 'sys');
+            document.getElementById('deployBtn').click();
+          } else if (query.toLowerCase().includes('despliega') || query.toLowerCase().includes('deploy') || query.toLowerCase().includes('zip') || query.toLowerCase().includes('github')) {
+            log(`⚡ [Agente Experto] Ejecutando orden de despliegue sobre los recursos cargados...`, 'sys');
+            document.getElementById('deployBtn').click();
+          }
+
+          aiDiagnosticBox.scrollTop = aiDiagnosticBox.scrollHeight;
+
+        } catch(errAgent) {
+          if (thinkDiv && thinkDiv.parentNode) aiDiagnosticBox.removeChild(thinkDiv);
+          const errDiv = document.createElement('div');
+          errDiv.className = 'bg-red-500/20 border border-red-500/40 rounded-lg p-2 text-red-300 text-xs mb-2';
+          errDiv.textContent = `✖ Error del Agente: ${errAgent.message || errAgent}`;
+          aiDiagnosticBox.appendChild(errDiv);
+          aiDiagnosticBox.scrollTop = aiDiagnosticBox.scrollHeight;
+        }
+      });
+    }
 
     checkAuth();
   </script>
