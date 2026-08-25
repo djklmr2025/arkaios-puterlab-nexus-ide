@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Desplegar COSMOS-DEN / ARKAIOS AGENT AI en Puter Hosting</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0b0f19; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { background: #131722; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; width: 480px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+    h2 { color: #38bdf8; margin-top: 0; font-size: 22px; font-weight: 700; }
+    button { background: #0284c7; color: white; border: 0; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 18px; transition: all 0.2s; }
+    button:hover { background: #0369a1; transform: translateY(-1px); }
+    input { background: #0b0f19; border: 1px solid #334155; color: #e2e8f0; padding: 10px 14px; border-radius: 8px; width: 85%; font-size: 14px; text-align: center; margin-top: 10px; font-weight: 600; }
+    .status { margin-top: 20px; font-size: 13px; color: #38bdf8; word-break: break-all; line-height: 1.6; text-align: left; background: #0b0f19; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; }
+    .badge { background: #0369a1; color: #e0f2fe; font-size: 11px; padding: 4px 10px; border-radius: 12px; display: inline-block; margin-bottom: 12px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">ARKAIOS Puter Deployment Engine</div>
+    <h2>🚀 Publicar Cosmos-Den en Puter</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Despliega directamente en tu cuenta de Puter Hosting (Dominio .puter.site)</p>
+    
+    <label style="font-size: 12px; color: #94a3b8; display: block; margin-top: 12px;">Subdominio de Puter Hosting:</label>
+    <input type="text" id="subdomainInp" value="arkaios-agent-ai">
+
+    <br>
+    <button id="deployBtn">⚡ Desplegar Ahora en Mi Perfil</button>
+    <div id="status" class="status">Estado: Listo para iniciar...</div>
+  </div>
+
+  <script>
+    const FILES = [
+      'index.html',
+      'assets/index-B84z-H78.js',
+      'assets/index-YnWCp-fq.css',
+      'vercel.json'
+    ];
+
+    function cleanSubdomain(str) {
+      return str.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    const inp = document.getElementById('subdomainInp');
+    inp.addEventListener('input', () => {
+      inp.value = cleanSubdomain(inp.value);
+    });
+
+    document.getElementById('deployBtn').addEventListener('click', async () => {
+      const statusEl = document.getElementById('status');
+      let sub = cleanSubdomain(inp.value);
+      if (!sub) sub = 'arkaios-agent-ai';
+      inp.value = sub;
+
+      statusEl.style.color = '#38bdf8';
+      statusEl.textContent = '1/4 Autenticando en Puter...';
+
+      try {
+        if (!puter.auth.isSignedIn()) {
+          await puter.auth.signIn();
+        }
+
+        const user = await puter.auth.getUser();
+        statusEl.textContent = `2/4 Conectado como @${user.username}. Creando directorio '${sub}' en Puter.fs...`;
+
+        try {
+          await puter.fs.mkdir(sub);
+          await puter.fs.mkdir(sub + '/assets');
+        } catch(e){}
+
+        for (const file of FILES) {
+          statusEl.textContent = `3/4 Subiendo ${file}...`;
+          try {
+            const res = await fetch('http://localhost:8000/' + file);
+            if (res.ok) {
+              const content = await res.text();
+              await puter.fs.write(sub + '/' + file, content);
+            }
+          } catch(e) {
+            console.error('Error procesando ' + file, e);
+          }
+        }
+
+        statusEl.textContent = `4/4 Creando sitio web hosting para '${sub}'...`;
+        let site = null;
+
+        try {
+          site = await puter.hosting.create(sub, sub);
+        } catch (errCreate) {
+          if (errCreate && errCreate.message && errCreate.message.includes('already exists')) {
+            try {
+              if (puter.hosting.update) {
+                site = await puter.hosting.update(sub, sub);
+              } else {
+                site = await puter.hosting.create(sub + '-app', sub);
+              }
+            } catch(errUpd) {
+              site = await puter.hosting.create(sub + '-app', sub);
+            }
+          } else {
+            throw errCreate;
+          }
+        }
+
+        const finalSub = site ? (site.subdomain || sub) : sub;
+        const cleanSub = finalSub.replace(/\.puter\.site$/i, '');
+        const fullUrl = `https://${cleanSub}.puter.site/`;
+
+        statusEl.style.color = '#4ade80';
+        statusEl.innerHTML = `✅ <b>¡Despliegue completado con éxito en tu cuenta de Puter!</b><br><br>` +
+                             `👤 <b>Usuario Puter:</b> @${user.username}<br>` +
+                             `🔗 <b>URL Pública:</b> <a href="${fullUrl}" target="_blank" style="color: #38bdf8; font-weight: bold; text-decoration: underline;">${fullUrl}</a>`;
+      } catch (err) {
+        statusEl.style.color = '#f87171';
+        statusEl.textContent = '❌ Error al desplegar: ' + (err.message || err);
+      }
+    });
+  </script>
+</body>
+</html>

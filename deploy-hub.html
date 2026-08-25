@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script type="module" src="github-storage.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <!-- Puter.js -->
 <script src="https://js.puter.com/v2/"></script>
@@ -112,12 +113,44 @@ tailwind.config = {
         <!-- Source Selector Tabs -->
         <div class="flex items-center gap-2 mb-4 p-1 bg-ink border border-borderEdge rounded-lg text-xs overflow-x-auto">
           <button id="tabIde" class="flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap">💻 PuterLab IDE</button>
+          <button id="tabZip" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">📦 Archivo .ZIP</button>
           <button id="tabLocal" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">📁 Carpeta Local</button>
           <button id="tabGithub" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">🐙 Repo GitHub</button>
           <button id="tabCloudSpace" class="flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap">☁️ Mi Espacio Puter</button>
         </div>
 
         <div class="space-y-4 text-xs">
+
+          <!-- Zip File Upload & Client-Side Unzip Panel -->
+          <div id="zipSourcePanel" class="hidden p-4 border-2 border-dashed border-purple-600/50 hover:border-purple-400 rounded-xl bg-purple-950/20 text-center transition-all">
+            <div class="text-3xl mb-1">📦</div>
+            <div class="font-bold text-white text-xs mb-1">Seleccionar o Arrastrar Archivo .ZIP del Proyecto</div>
+            <div class="text-[11px] text-purple-300/70 mb-3">Sube paquetes completos de código en <code>.zip</code>. Se descompone en el navegador y crea la estructura en Puter Cloud.</div>
+            
+            <input type="file" id="zipPicker" accept=".zip,application/zip,application/x-zip-compressed" class="hidden">
+            <button onclick="document.getElementById('zipPicker').click()" class="bg-purple-900/60 hover:bg-purple-800 text-purple-200 font-semibold px-4 py-2 rounded-lg border border-purple-500/40 transition-colors shadow-sm inline-flex items-center gap-2">
+              <span>Examinar Archivo .ZIP...</span>
+            </button>
+
+            <div id="zipDropZone" class="mt-3 py-2 px-3 bg-ink/60 border border-purple-900/40 hover:border-purple-500/60 rounded-lg text-[11px] text-slate-400 cursor-pointer transition-colors">
+              O arrastra y suelta tu archivo <code>.zip</code> directamente aquí
+            </div>
+
+            <div id="zipProgress" class="hidden mt-3 text-[11px] space-y-1">
+              <div class="flex items-center justify-between text-purple-300">
+                <span id="zipStatusText">Descomprimiendo archivo .zip...</span>
+                <span id="zipPercentText">0%</span>
+              </div>
+              <div class="w-full h-1.5 bg-ink rounded-full overflow-hidden">
+                <div id="zipProgressBar" class="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500 w-0 transition-all duration-200"></div>
+              </div>
+            </div>
+
+            <div id="zipSummary" class="text-[11px] text-emerald-400 mt-2 font-mono hidden"></div>
+            
+            <div id="zipFilesPreview" class="hidden mt-3 bg-ink/90 border border-purple-900/40 rounded-lg p-2 max-h-36 overflow-y-auto text-left font-mono text-[10px] space-y-1">
+            </div>
+          </div>
 
           <!-- Local Folder / Files Upload Area -->
           <div id="localSourcePanel" class="hidden p-4 border-2 border-dashed border-borderEdge hover:border-brand/50 rounded-xl bg-ink/40 text-center transition-colors">
@@ -284,14 +317,17 @@ tailwind.config = {
     const googleEmail = document.getElementById('googleEmail');
     const googleLogoutBtn = document.getElementById('googleLogoutBtn');
 
-    let activeSourceMode = 'ide'; // 'ide', 'local', 'github', 'cloud'
+    let activeSourceMode = 'ide'; // 'ide', 'zip', 'local', 'github', 'cloud'
     let selectedLocalFiles = [];  // Array of {path, text}
+    let selectedZipFiles = [];    // Array of {path, content, isBinary}
 
     // Tabs switching
     const tabIde = document.getElementById('tabIde');
+    const tabZip = document.getElementById('tabZip');
     const tabLocal = document.getElementById('tabLocal');
     const tabGithub = document.getElementById('tabGithub');
     const tabCloudSpace = document.getElementById('tabCloudSpace');
+    const zipSourcePanel = document.getElementById('zipSourcePanel');
     const localSourcePanel = document.getElementById('localSourcePanel');
     const githubSourcePanel = document.getElementById('githubSourcePanel');
     const cloudSpacePanel = document.getElementById('cloudSpacePanel');
@@ -299,10 +335,12 @@ tailwind.config = {
     function setTab(mode) {
       activeSourceMode = mode;
       tabIde.className = mode === 'ide' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
+      tabZip.className = mode === 'zip' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
       tabLocal.className = mode === 'local' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
       tabGithub.className = mode === 'github' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
       tabCloudSpace.className = mode === 'cloud' ? 'flex-1 py-1.5 px-2 rounded-md font-medium text-white bg-brand transition-all whitespace-nowrap' : 'flex-1 py-1.5 px-2 rounded-md font-medium text-slate-400 hover:text-white transition-all whitespace-nowrap';
 
+      zipSourcePanel.classList.toggle('hidden', mode !== 'zip');
       localSourcePanel.classList.toggle('hidden', mode !== 'local');
       githubSourcePanel.classList.toggle('hidden', mode !== 'github');
       cloudSpacePanel.classList.toggle('hidden', mode !== 'cloud');
@@ -311,9 +349,147 @@ tailwind.config = {
     }
 
     tabIde.addEventListener('click', () => setTab('ide'));
+    tabZip.addEventListener('click', () => setTab('zip'));
     tabLocal.addEventListener('click', () => setTab('local'));
     tabGithub.addEventListener('click', () => setTab('github'));
     tabCloudSpace.addEventListener('click', () => setTab('cloud'));
+
+    // Handle Zip file picker & Drag/Drop
+    const zipPicker = document.getElementById('zipPicker');
+    const zipDropZone = document.getElementById('zipDropZone');
+
+    if (zipPicker) {
+      zipPicker.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleZipFile(e.target.files[0]);
+        }
+      });
+    }
+
+    if (zipDropZone) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        zipDropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+      });
+      zipDropZone.addEventListener('dragover', () => zipDropZone.classList.add('border-fuchsia-500', 'bg-fuchsia-950/30'));
+      zipDropZone.addEventListener('dragleave', () => zipDropZone.classList.remove('border-fuchsia-500', 'bg-fuchsia-950/30'));
+      zipDropZone.addEventListener('drop', (e) => {
+        zipDropZone.classList.remove('border-fuchsia-500', 'bg-fuchsia-950/30');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleZipFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    async function handleZipFile(file) {
+      if (!file.name.toLowerCase().endsWith('.zip')) {
+        log('✖ El archivo seleccionado debe ser un .zip válido', 'err');
+        alert('Por favor selecciona un archivo comprimido en formato .zip');
+        return;
+      }
+
+      const zipProgress = document.getElementById('zipProgress');
+      const zipStatusText = document.getElementById('zipStatusText');
+      const zipPercentText = document.getElementById('zipPercentText');
+      const zipProgressBar = document.getElementById('zipProgressBar');
+      const zipSummary = document.getElementById('zipSummary');
+      const zipFilesPreview = document.getElementById('zipFilesPreview');
+
+      zipProgress.classList.remove('hidden');
+      zipSummary.classList.add('hidden');
+      zipFilesPreview.classList.add('hidden');
+      zipFilesPreview.innerHTML = '';
+      selectedZipFiles = [];
+
+      const baseZipName = file.name.replace(/\.zip$/i, '');
+      const cleanZipSlug = cleanSlug(baseZipName);
+      if (cleanZipSlug && projectInp) {
+        projectInp.value = cleanZipSlug;
+        updatePreview();
+      }
+
+      log(`Leyendo archivo .ZIP '${file.name}' (${(file.size / 1024).toFixed(1)} KB)...`, 'info');
+
+      try {
+        if (typeof JSZip === 'undefined') {
+          throw new Error("La librería JSZip no está disponible. Revisa tu conexión.");
+        }
+
+        const zip = new JSZip();
+        await zip.loadAsync(file, {
+          onUpdate: (metadata) => {
+            const percent = Math.round(metadata.percent);
+            zipPercentText.textContent = `${percent}%`;
+            zipProgressBar.style.width = `${percent}%`;
+          }
+        });
+
+        // Detect if all files are inside a common root folder in the zip
+        const fileKeys = Object.keys(zip.files);
+        const rootCandidates = fileKeys.map(k => k.split('/')[0]).filter(Boolean);
+        let commonPrefix = '';
+        if (rootCandidates.length > 0 && rootCandidates.every(r => r === rootCandidates[0]) && zip.files[rootCandidates[0] + '/']) {
+          commonPrefix = rootCandidates[0] + '/';
+        }
+
+        const binaryExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'otf', 'pdf', 'mp3', 'mp4', 'wav'];
+        let fileCount = 0;
+        let totalBytes = 0;
+
+        for (let i = 0; i < fileKeys.length; i++) {
+          const filename = fileKeys[i];
+          const entry = zip.files[filename];
+
+          if (entry.dir) continue;
+          if (filename.includes('__MACOSX/') || filename.includes('.DS_Store') || filename.includes('/.git/') || filename.includes('/node_modules/')) continue;
+
+          let relativePath = filename;
+          if (commonPrefix && relativePath.startsWith(commonPrefix)) {
+            relativePath = relativePath.substring(commonPrefix.length);
+          }
+          if (!relativePath) continue;
+
+          const ext = relativePath.split('.').pop().toLowerCase();
+          const isBinary = binaryExts.includes(ext);
+
+          let content;
+          if (isBinary) {
+            content = await entry.async('uint8array');
+          } else {
+            content = await entry.async('string');
+            if (relativePath === 'package.json') {
+              try {
+                const pkg = JSON.parse(content);
+                if (pkg.name) {
+                  projectInp.value = cleanSlug(pkg.name);
+                  updatePreview();
+                  log(`✔ Detectado nombre de proyecto en package.json: '${pkg.name}'`, 'sys');
+                }
+              } catch(ePkg){}
+            }
+          }
+
+          selectedZipFiles.push({ path: relativePath, content, isBinary });
+          fileCount++;
+          totalBytes += (entry._data ? entry._data.uncompressedSize : 0);
+
+          const fileRow = document.createElement('div');
+          fileRow.className = 'text-slate-300 flex items-center justify-between py-0.5 border-b border-purple-900/30';
+          fileRow.innerHTML = `<span>${isBinary ? '🖼️' : '📄'} ${relativePath}</span> <span class="text-purple-400 text-[9px]">${isBinary ? 'Binario' : 'Texto'}</span>`;
+          zipFilesPreview.appendChild(fileRow);
+        }
+
+        zipProgress.classList.add('hidden');
+        zipSummary.classList.remove('hidden');
+        zipFilesPreview.classList.remove('hidden');
+        zipSummary.textContent = `✔ ${fileCount} archivo(s) descomprimidos (${(totalBytes / 1024).toFixed(1)} KB descompreso)`;
+        log(`✔ Archivo .ZIP listo: ${fileCount} archivos preparados para desplegar en Puter Cloud`, 'ok');
+
+      } catch(errZip) {
+        zipProgress.classList.add('hidden');
+        log(`✖ Error leyendo .ZIP: ${errZip.message}`, 'err');
+        alert(`Error al procesar archivo .zip: ${errZip.message}`);
+      }
+    }
 
     // Handle local directory file picker
     document.getElementById('folderPicker').addEventListener('change', async (e) => {
@@ -495,6 +671,9 @@ tailwind.config = {
               <button onclick="inspectAppFiles('${sub}')" class="px-2.5 py-1 rounded bg-panel2 text-slate-300 hover:bg-borderEdge transition-colors text-[11px] flex items-center gap-1">
                 👁 Archivos
               </button>
+              <button onclick="openProjectInIde('${sub}')" class="px-2.5 py-1 rounded bg-purple-900/40 text-purple-300 hover:bg-purple-800/60 border border-purple-500/30 transition-colors text-[11px] flex items-center gap-1" title="Abrir proyecto en PuterLab IDE">
+                💻 IDE
+              </button>
               <a href="${url}" target="_blank" class="px-2.5 py-1 rounded bg-brand/20 text-brand2 hover:bg-brand/30 transition-colors font-medium">
                 Abrir
               </a>
@@ -509,6 +688,10 @@ tailwind.config = {
         console.error(e);
       }
     }
+
+    window.openProjectInIde = function(sub) {
+      window.location.href = `ide.html?project=${encodeURIComponent(sub)}`;
+    };
 
     window.inspectAppFiles = async function(sub) {
       const modal = document.getElementById('cloudFilesModal');
@@ -597,6 +780,29 @@ tailwind.config = {
               log(`  ✖ [PuterFS] Error leyendo ${file}: ${errFile.message}`, 'err');
             }
           }
+        } else if (activeSourceMode === 'zip') {
+          if (!selectedZipFiles.length) {
+            throw new Error("No has seleccionado ni descomprimido ningún archivo .zip.");
+          }
+          log(`Sincronizando ${selectedZipFiles.length} archivo(s) extraídos de tu paquete .ZIP a puter.fs...`, 'info');
+          for (const f of selectedZipFiles) {
+            const pathParts = f.path.split('/');
+            if (pathParts.length > 1) {
+              const subDir = targetFolder + '/' + pathParts.slice(0, -1).join('/');
+              try { await puter.fs.mkdir(subDir, { recursive: true }); } catch(e){}
+            }
+
+            if (f.isBinary) {
+              const blob = new Blob([f.content]);
+              const fileObj = new File([blob], f.path.split('/').pop());
+              await puter.fs.write(targetFolder + '/' + f.path, fileObj);
+            } else {
+              await puter.fs.write(targetFolder + '/' + f.path, f.content);
+            }
+
+            deployedFilesMap[f.path] = f.isBinary ? '[Binario]' : f.content;
+            log(`  ✔ [PuterFS] Guardado ${targetFolder}/${f.path}`, 'ok');
+          }
         } else if (activeSourceMode === 'local') {
           if (!selectedLocalFiles.length) {
             throw new Error("No has seleccionado ninguna carpeta local para desplegar.");
@@ -615,28 +821,89 @@ tailwind.config = {
         } else if (activeSourceMode === 'github') {
           const repoUrl = document.getElementById('githubRepoInp').value.trim();
           if (!repoUrl) throw new Error("Ingresa la URL del repositorio de GitHub.");
-          log(`Importando repositorio desde GitHub (${repoUrl})...`, 'info');
+          log(`Importando paquete completo del repositorio desde GitHub (${repoUrl})...`, 'info');
           const cleanRepo = repoUrl.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
-          const rawIndexUrl = `https://raw.githubusercontent.com/${cleanRepo}/main/index.html`;
           
-          const res = await fetch(rawIndexUrl);
-          if (res.ok) {
-            const html = await res.text();
-            await puter.fs.write(targetFolder + '/index.html', html);
-            deployedFilesMap['index.html'] = html;
-            log(`  ✔ [GitHub] Importado index.html`, 'ok');
-          } else {
-            const altUrl = `https://raw.githubusercontent.com/${cleanRepo}/master/index.html`;
-            const res2 = await fetch(altUrl);
-            if (res2.ok) {
-              const html2 = await res2.text();
-              await puter.fs.write(targetFolder + '/index.html', html2);
-              deployedFilesMap['index.html'] = html2;
-              log(`  ✔ [GitHub] Importado index.html (rama master)`, 'ok');
+          let zipFetched = false;
+          // Intento 1: Descargar archivo ZIP del repositorio vía GitHub Zipball
+          try {
+            const zipUrls = [
+              `https://api.github.com/repos/${cleanRepo}/zipball/main`,
+              `https://api.github.com/repos/${cleanRepo}/zipball/master`,
+              `https://raw.githubusercontent.com/${cleanRepo}/main/index.html`
+            ];
+
+            let zipRes = await fetch(zipUrls[0]);
+            if (!zipRes.ok) zipRes = await fetch(zipUrls[1]);
+
+            if (zipRes.ok && typeof JSZip !== 'undefined') {
+              const zipBuffer = await zipRes.arrayBuffer();
+              const zip = new JSZip();
+              await zip.loadAsync(zipBuffer);
+
+              const fileKeys = Object.keys(zip.files);
+              const rootCandidates = fileKeys.map(k => k.split('/')[0]).filter(Boolean);
+              let commonPrefix = rootCandidates.length > 0 && rootCandidates.every(r => r === rootCandidates[0]) ? rootCandidates[0] + '/' : '';
+
+              const binaryExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'otf', 'pdf', 'mp3', 'mp4', 'wav'];
+
+              for (const filename of fileKeys) {
+                const entry = zip.files[filename];
+                if (entry.dir || filename.includes('__MACOSX/') || filename.includes('.DS_Store') || filename.includes('/.git/') || filename.includes('/node_modules/')) continue;
+
+                let relativePath = commonPrefix && filename.startsWith(commonPrefix) ? filename.substring(commonPrefix.length) : filename;
+                if (!relativePath) continue;
+
+                const ext = relativePath.split('.').pop().toLowerCase();
+                const isBinary = binaryExts.includes(ext);
+
+                const pathParts = relativePath.split('/');
+                if (pathParts.length > 1) {
+                  const subDir = targetFolder + '/' + pathParts.slice(0, -1).join('/');
+                  try { await puter.fs.mkdir(subDir, { recursive: true }); } catch(e){}
+                }
+
+                if (isBinary) {
+                  const binData = await entry.async('uint8array');
+                  const blob = new Blob([binData]);
+                  const fileObj = new File([blob], relativePath.split('/').pop());
+                  await puter.fs.write(targetFolder + '/' + relativePath, fileObj);
+                  deployedFilesMap[relativePath] = '[Binario]';
+                } else {
+                  const textData = await entry.async('string');
+                  await puter.fs.write(targetFolder + '/' + relativePath, textData);
+                  deployedFilesMap[relativePath] = textData;
+                }
+                log(`  ✔ [GitHub Zip] Guardado ${targetFolder}/${relativePath}`, 'ok');
+              }
+              zipFetched = Object.keys(deployedFilesMap).length > 0;
+            }
+          } catch(eZipFetch) {
+            log(`  ⚠️ Falló descompresión de Zipball GitHub: ${eZipFetch.message}. Intentando lectura de index.html directo...`, 'warn');
+          }
+
+          // Fallback: Si zipball no funciona o es bloqueado por CORS/privacidad, intentar lectura directa de index.html
+          if (!zipFetched) {
+            const rawIndexUrl = `https://raw.githubusercontent.com/${cleanRepo}/main/index.html`;
+            let res = await fetch(rawIndexUrl);
+            if (!res.ok) {
+              const altUrl = `https://raw.githubusercontent.com/${cleanRepo}/master/index.html`;
+              res = await fetch(altUrl);
+            }
+
+            if (res.ok) {
+              const html = await res.text();
+              await puter.fs.write(targetFolder + '/index.html', html);
+              deployedFilesMap['index.html'] = html;
+              log(`  ✔ [GitHub Raw] Importado index.html`, 'ok');
             } else {
-              throw new Error(`No se pudo leer index.html del repositorio GitHub '${cleanRepo}'`);
+              throw new Error(`El repositorio GitHub '${cleanRepo}' es privado o no contiene un 'index.html' accesible en la rama main/master. Utiliza la pestaña '📦 Archivo .ZIP' o '📁 Carpeta Local' para subir tu proyecto.`);
             }
           }
+        }
+
+        if (!Object.keys(deployedFilesMap).length) {
+          throw new Error("No se pudo guardar ningún archivo en el directorio. Verifica que el proyecto tenga archivos válidos.");
         }
 
         log(`Registrando subdominio '${slug}.puter.site' en Puter Hosting...`, 'info');
@@ -697,10 +964,16 @@ tailwind.config = {
         `;
 
       } catch (err) {
-        log(`✖ ERROR DE DESPLIEGUE: ${err.message || err}`, 'err');
+        let rawErr = err.message || String(err);
+        let userAdvice = rawErr;
+        if (rawErr.includes('Subject does not exist')) {
+          userAdvice = `Directorio de Puter.fs sin archivos o inaccesible ('Subject does not exist'). Si estás importando un repositorio privado de GitHub, utiliza la pestaña '📦 Archivo .ZIP' o '📁 Carpeta Local' para subir todos los archivos descomprimidos.`;
+        }
+
+        log(`✖ ERROR DE DESPLIEGUE: ${userAdvice}`, 'err');
         aiDiagnosticBox.innerHTML = `
           <div class="text-red-400 font-bold mb-1">⚠️ Diagnóstico IA: Conflicto Detectado</div>
-          <div>Error recibido: <i>${err.message || err}</i>. Sugerencia: Revisa los campos de entrada o el formato de archivos.</div>
+          <div>${userAdvice}</div>
         `;
       }
     });

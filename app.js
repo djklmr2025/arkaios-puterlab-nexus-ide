@@ -1063,6 +1063,31 @@ async function boot() {
   refreshIcons();
   await initAuth();
   await loadProject();
+
+  // Cargar proyecto desde Puter Cloud si viene especificado en la URL (?project=slug)
+  const urlParams = new URLSearchParams(window.location.search);
+  const projParam = urlParams.get('project');
+  if (projParam && typeof puter !== 'undefined' && puter.fs) {
+    try {
+      const targetDir = '/' + projParam;
+      const items = await puter.fs.readdir(targetDir);
+      if (items && items.length) {
+        state.files = {};
+        for (const item of items) {
+          if (!item.is_dir) {
+            try {
+              const fileObj = await puter.fs.read(targetDir + '/' + item.name);
+              const txt = typeof fileObj === 'string' ? fileObj : (await fileObj.text());
+              state.files[item.name] = { content: txt };
+            } catch(eItem){}
+          }
+        }
+        saveProject();
+        toast(`📁 Proyecto '${projParam}' cargado desde Puter Cloud`);
+      }
+    } catch(eProj){}
+  }
+
   renderTree();
   greetAI();
   termHTML('<span class="term-brand">PuterLab Terminal</span> — comandos (<span class="term-brand">help</span>) o lenguaje natural: escribe una frase y el agente actuará.');
