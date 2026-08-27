@@ -36,8 +36,8 @@ tailwind.config = {
 
   <!-- Header Navigation -->
   <header class="h-16 border-b border-purple-950/60 glass px-6 flex items-center justify-between sticky top-0 z-50">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-fuchsia-600 flex items-center justify-center font-bold text-white shadow-lg shadow-purple-600/30">
+    <div id="godSecretTrigger" class="flex items-center gap-3 cursor-pointer select-none group" title="Haz 3 clics para la entrada secreta Modo Dios ⚡">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-fuchsia-600 flex items-center justify-center font-bold text-white shadow-lg shadow-purple-600/30 group-hover:scale-105 transition-transform">
         🧠
       </div>
       <div>
@@ -48,6 +48,9 @@ tailwind.config = {
 
     <!-- Auth User Profile Pill -->
     <div class="flex items-center gap-3">
+      <button id="godModeQuickBtn" onclick="openGodModeGenerator()" class="hidden bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all items-center gap-1.5 shadow-lg shadow-amber-500/10 animate-pulse">
+        <span>⚡ MODO DIOS</span>
+      </button>
       <div id="googleUserPill" class="hidden flex items-center gap-3 bg-[#130c29] border border-purple-800/40 px-3.5 py-1.5 rounded-xl shadow-lg">
         <img id="googleAvatar" src="" class="w-7 h-7 rounded-full border border-fuchsia-500/50">
         <div class="text-[11px] leading-tight">
@@ -197,6 +200,89 @@ tailwind.config = {
 
   </main>
 
+  <!-- MODO DIOS — GENERADOR DE CÓDIGOS DE SALDO AMR MODAL -->
+  <div id="godModeModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-[#0e091e] border border-amber-500/50 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+      <!-- Glow effect -->
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-purple-900/60 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xl">
+            👑
+          </div>
+          <div>
+            <h2 class="text-lg font-black text-white tracking-wide">GENERADOR MODO DIOS — CÓDIGOS DE SALDO AMR</h2>
+            <p id="godUserIdentity" class="text-xs text-amber-300/80 font-mono">Modo Administrador Exclusivo (1 AMR = 1 MXN)</p>
+          </div>
+        </div>
+        <button onclick="closeGodModeGenerator()" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
+      </div>
+
+      <!-- Unauthorized Alert Box -->
+      <div id="godAccessDeniedBox" class="hidden bg-red-950/60 border border-red-500/50 rounded-2xl p-6 text-center space-y-3">
+        <div class="text-3xl">⛔</div>
+        <h3 class="text-red-400 font-bold text-base">ACCESO DENEGADO — MODO DIOS RESTRINGIDO</h3>
+        <p class="text-slate-300 text-xs leading-relaxed max-w-md mx-auto">
+          Este generador de saldo AMR-IO está estrictamente limitado a las dos cuentas administradores principales:
+          <br><b class="text-amber-300 font-mono">djklmr2024@gmail.com</b> o <b class="text-amber-300 font-mono">arkaios2026@gmail.com</b>.
+        </p>
+      </div>
+
+      <!-- Authorized Generator Form -->
+      <div id="godGeneratorControls" class="space-y-6">
+        <!-- Preset Amounts -->
+        <div>
+          <label class="block text-xs font-mono text-purple-300/80 uppercase font-bold mb-2">1. Selecciona el Paquete o Monto</label>
+          <div class="grid grid-cols-3 gap-3">
+            <button onclick="setGodPreset(50, false)" class="bg-[#150f31] hover:bg-purple-900/40 border border-purple-700/40 p-3 rounded-xl text-center cursor-pointer transition-all focus:border-amber-400">
+              <div class="text-amber-400 font-bold text-sm">50 AMR-IO</div>
+              <div class="text-[10px] text-slate-400">$50 MXN</div>
+            </button>
+            <button onclick="setGodPreset(100, false)" class="bg-[#150f31] hover:bg-purple-900/40 border border-purple-700/40 p-3 rounded-xl text-center cursor-pointer transition-all focus:border-amber-400">
+              <div class="text-amber-400 font-bold text-sm">100 AMR-IO</div>
+              <div class="text-[10px] text-slate-400">$100 MXN</div>
+            </button>
+            <button onclick="setGodPreset(500, true)" class="bg-gradient-to-tr from-amber-500/20 to-amber-600/10 border border-amber-500/50 p-3 rounded-xl text-center cursor-pointer transition-all focus:border-amber-400">
+              <div class="text-amber-300 font-black text-sm">500 AMR (VIP)</div>
+              <div class="text-[10px] text-amber-200/80">$500 MXN + 100GB</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Code Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-mono text-purple-300/80 uppercase font-bold mb-1">Monto AMR Personalizado</label>
+            <input type="number" id="godCustomAmount" value="500" min="1" class="w-full bg-[#150f31] border border-purple-800/60 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-purple-300/80 uppercase font-bold mb-1">Concepto / Nota Interna</label>
+            <input type="text" id="godCustomConcept" value="Código de Saldo Modo Dios" class="w-full bg-[#150f31] border border-purple-800/60 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+          </div>
+        </div>
+
+        <!-- Generate Action Button -->
+        <button onclick="generateAmrVoucherCode()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-4 rounded-xl text-xs shadow-lg uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <span>⚡ Generar Nuevo Código de Saldo AMR</span>
+        </button>
+
+        <!-- Active Vouchers Table -->
+        <div class="space-y-2 pt-2">
+          <div class="flex items-center justify-between text-xs font-mono text-slate-300 border-b border-purple-900/60 pb-1">
+            <span>📋 Códigos AMR Generados Activos</span>
+            <span id="godVoucherCount" class="text-amber-400 font-bold">0 Códigos</span>
+          </div>
+
+          <div id="godVoucherList" class="max-h-48 overflow-y-auto space-y-2 pr-1 text-xs">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- FLOATING TOAST NOTIFICATION (Igual a Imagen 2) -->
   <div id="arkaiosToast" class="fixed bottom-6 right-6 z-50 hidden transition-all duration-300 transform translate-y-2">
     <div class="bg-[#180f33] border border-purple-600/40 text-purple-200 text-xs px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 font-mono">
@@ -216,6 +302,9 @@ tailwind.config = {
 
   <script>
     let isRegisterMode = false;
+    const GOD_ALLOWED_EMAILS = ['djklmr2024@gmail.com', 'arkaios2026@gmail.com'];
+    let godClickCount = 0;
+    let godClickTimer = null;
 
     function showToast(msg) {
       const toast = document.getElementById('arkaiosToast');
@@ -225,6 +314,129 @@ tailwind.config = {
       setTimeout(() => {
         toast.classList.add('hidden', 'translate-y-2');
       }, 4000);
+    }
+
+    // Secret Entrance Trigger (3 Clicks on Header Logo)
+    document.addEventListener('DOMContentLoaded', () => {
+      const logoTrigger = document.getElementById('godSecretTrigger');
+      if (logoTrigger) {
+        logoTrigger.addEventListener('click', () => {
+          godClickCount++;
+          if (godClickCount === 1) {
+            godClickTimer = setTimeout(() => { godClickCount = 0; }, 1500);
+          }
+          if (godClickCount >= 3) {
+            clearTimeout(godClickTimer);
+            godClickCount = 0;
+            openGodModeGenerator();
+          }
+        });
+      }
+    });
+
+    function isGodUserAuthorized() {
+      if (!window.ArkaiosAuth || !window.ArkaiosAuth.currentUser) return false;
+      const userEmail = (window.ArkaiosAuth.currentUser.email || '').toLowerCase().trim();
+      return GOD_ALLOWED_EMAILS.includes(userEmail);
+    }
+
+    function openGodModeGenerator() {
+      const modal = document.getElementById('godModeModal');
+      const deniedBox = document.getElementById('godAccessDeniedBox');
+      const controls = document.getElementById('godGeneratorControls');
+      const identity = document.getElementById('godUserIdentity');
+
+      modal.classList.remove('hidden');
+
+      if (isGodUserAuthorized()) {
+        deniedBox.classList.add('hidden');
+        controls.classList.remove('hidden');
+        identity.textContent = `👑 Licencia Modo Dios Concedida • ${window.ArkaiosAuth.currentUser.email}`;
+        renderGodVouchersList();
+      } else {
+        deniedBox.classList.remove('hidden');
+        controls.classList.add('hidden');
+        const activeEmail = window.ArkaiosAuth?.currentUser?.email || 'Sin iniciar sesión';
+        identity.textContent = `⛔ Usuario No Autorizado: ${activeEmail}`;
+      }
+    }
+
+    function closeGodModeGenerator() {
+      document.getElementById('godModeModal').classList.add('hidden');
+    }
+
+    function setGodPreset(amount, isVip) {
+      document.getElementById('godCustomAmount').value = amount;
+      document.getElementById('godCustomConcept').value = isVip ? 
+        'Membresía Anual Única VIP (100GB Nube)' : 
+        `Recarga Saldo Modo Dios ${amount} AMR`;
+    }
+
+    function generateAmrVoucherCode() {
+      if (!isGodUserAuthorized()) return;
+      const amount = parseFloat(document.getElementById('godCustomAmount').value) || 500;
+      const concept = document.getElementById('godCustomConcept').value.trim() || 'Código AMR Modo Dios';
+      const isVip = amount >= 500 || concept.toLowerCase().includes('vip');
+
+      const randSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const code = isVip ? `AMR-${amount}-VIP-${randSuffix}` : `AMR-${amount}-${randSuffix}`;
+
+      const voucher = {
+        code,
+        amount,
+        concept,
+        isVip,
+        isRedeemed: false,
+        createdAt: new Date().toISOString(),
+        createdBy: window.ArkaiosAuth.currentUser.email
+      };
+
+      const existing = JSON.parse(localStorage.getItem('amr_god_vouchers') || '[]');
+      existing.unshift(voucher);
+      localStorage.setItem('amr_god_vouchers', JSON.stringify(existing));
+
+      showToast(`⚡ Código generado: ${code}`);
+      renderGodVouchersList();
+    }
+
+    function renderGodVouchersList() {
+      const container = document.getElementById('godVoucherList');
+      const countLabel = document.getElementById('godVoucherCount');
+      const vouchers = JSON.parse(localStorage.getItem('amr_god_vouchers') || '[]');
+
+      countLabel.textContent = `${vouchers.length} Códigos Generados`;
+
+      if (vouchers.length === 0) {
+        container.innerHTML = `<div class="text-slate-500 text-center py-4">No has generado ningún código de saldo aún.</div>`;
+        return;
+      }
+
+      container.innerHTML = vouchers.map((v, i) => `
+        <div class="bg-[#150f31] border border-purple-900/60 rounded-xl p-3 flex items-center justify-between gap-2">
+          <div>
+            <div class="font-mono font-bold text-amber-400 text-xs tracking-wider flex items-center gap-2">
+              <span>${v.code}</span>
+              ${v.isVip ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] px-1.5 py-0.5 rounded">100GB VIP</span>` : ''}
+            </div>
+            <div class="text-[10px] text-slate-400">${v.concept} • <b class="text-white">${v.amount} AMR-IO</b></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="navigator.clipboard.writeText('${v.code}'); alert('✔ Código ${v.code} copiado al portapapeles');" class="bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/40 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all">
+              📋 Copiar
+            </button>
+            <button onclick="deleteGodVoucher(${i})" class="bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function deleteGodVoucher(index) {
+      const vouchers = JSON.parse(localStorage.getItem('amr_god_vouchers') || '[]');
+      vouchers.splice(index, 1);
+      localStorage.setItem('amr_god_vouchers', JSON.stringify(vouchers));
+      renderGodVouchersList();
     }
 
     // Check query params for logged_out status
@@ -241,6 +453,7 @@ tailwind.config = {
         const lockScreen = document.getElementById('authLockScreen');
         const platformContent = document.getElementById('platformContent');
         const pill = document.getElementById('googleUserPill');
+        const godBtn = document.getElementById('godModeQuickBtn');
 
         if (user) {
           lockScreen.classList.add('hidden');
@@ -249,10 +462,18 @@ tailwind.config = {
           document.getElementById('googleAvatar').src = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png';
           document.getElementById('googleName').textContent = user.displayName || user.email.split('@')[0];
           document.getElementById('googleEmail').textContent = user.email || '';
+
+          // Show God Mode button if user is authorized admin
+          if (GOD_ALLOWED_EMAILS.includes((user.email || '').toLowerCase().trim())) {
+            godBtn.classList.remove('hidden');
+          } else {
+            godBtn.classList.add('hidden');
+          }
         } else {
           lockScreen.classList.remove('hidden');
           platformContent.classList.add('hidden');
           pill.classList.add('hidden');
+          godBtn.classList.add('hidden');
         }
       });
 
