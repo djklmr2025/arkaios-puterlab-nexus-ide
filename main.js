@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import http from 'node:http';
+import { existsSync, createReadStream, statSync } from 'node:fs';
 import { exec } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -9,6 +10,82 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow;
+let localServer;
+const PORT = 18123; // Puerto interno del ejecutable
+
+// ─── MIME types para el servidor HTTP embebido ────────────────────────────────
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.webp': 'image/webp',
+};
+
+/**
+ * Arranca un servidor HTTP local embebido en el proceso Electron.
+ * Esto permite que Puter.js (que RECHAZA file://) funcione correctamente
+ * porque la app se sirve desde http://localhost:PORT/
+ */
+function startEmbeddedServer() {
+  return new Promise((resolve) => {
+    localServer = http.createServer((req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      let reqPath = decodeURIComponent(req.url.split('?')[0]);
+      if (reqPath === '/') reqPath = '/index.html';
+
+      const filePath = path.join(__dirname, reqPath);
+
+      // Seguridad: No salir del directorio de la app
+      if (!filePath.startsWith(__dirname)) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+      }
+
+      if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('404 Not Found');
+        return;
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': contentType });
+      createReadStream(filePath).pipe(res);
+    });
+
+    localServer.listen(PORT, '127.0.0.1', () => {
+      console.log(`[PuterLab] Servidor HTTP embebido activo en http://127.0.0.1:${PORT}/`);
+      resolve();
+    });
+
+    localServer.on('error', (err) => {
+      // Si el puerto ya está en uso, intentar el siguiente disponible (fallback)
+      console.error(`[PuterLab] Error en servidor HTTP embebido: ${err.message}`);
+      resolve(); // continuar aunque falle, para no bloquear el inicio
+    });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -24,10 +101,13 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  // ✅ Cargar desde http://localhost en lugar de file:///
+  // Esto soluciona el error "Puter.js Error: Unsupported Protocol"
+  mainWindow.loadURL(`http://127.0.0.1:${PORT}/index.html`);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await startEmbeddedServer();
   createWindow();
 
   app.on('activate', () => {
@@ -36,6 +116,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  if (localServer) localServer.close();
   if (process.platform !== 'darwin') app.quit();
 });
 
@@ -143,3 +224,5 @@ ipcMain.handle('os:execCommand', async (_, { command, cwd }) => {
     });
   });
 });
+
+
