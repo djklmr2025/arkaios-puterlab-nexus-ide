@@ -44,13 +44,35 @@ class ArkaiosAuthService {
       throw new Error("Firebase Auth SDK no cargado.");
     }
     try {
-      const result = await this.auth.signInWithPopup(this.googleProvider);
-      return result.user;
+      // En Electron, signInWithPopup falla porque las ventanas popup están
+      // bloqueadas. Usamos signInWithRedirect que funciona correctamente
+      // cuando la app está servida desde http://127.0.0.1 (nuestro servidor embebido).
+      await this.auth.signInWithRedirect(this.googleProvider);
     } catch (error) {
-      console.error("Error en Google Auth:", error);
-      throw error;
+      // Fallback: intentar popup si redirect no está disponible
+      try {
+        const result = await this.auth.signInWithPopup(this.googleProvider);
+        return result.user;
+      } catch (popupError) {
+        console.error("Error en Google Auth (popup fallback):", popupError);
+        throw popupError;
+      }
     }
   }
+
+  async checkRedirectResult() {
+    if (!this.auth) return null;
+    try {
+      const result = await this.auth.getRedirectResult();
+      if (result && result.user) {
+        return result.user;
+      }
+    } catch (e) {
+      console.warn("getRedirectResult:", e.message);
+    }
+    return null;
+  }
+
 
   async signInWithEmail(email, password) {
     if (!this.auth) throw new Error("Firebase Auth SDK no cargado.");
